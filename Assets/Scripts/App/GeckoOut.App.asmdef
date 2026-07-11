@@ -1,0 +1,19 @@
+{
+    "name": "GeckoOut.App",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f7f49e0dc2514384896c10f43ac4c9d1",
+        "GUID:aa6e8b7ebe936004090147ddda36070c",
+        "GUID:12b9e2373ab181a4eb5c474e33c66d90",
+        "GUID:16ee553b5e594be468b25ee545f9b1a1"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

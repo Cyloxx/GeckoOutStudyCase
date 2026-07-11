@@ -1,0 +1,16 @@
+{
+    "name": "GeckoOut.UI",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f7f49e0dc2514384896c10f43ac4c9d1"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,18 @@
+{
+    "name": "GeckoOut.Presentation",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f7f49e0dc2514384896c10f43ac4c9d1",
+        "GUID:12b9e2373ab181a4eb5c474e33c66d90",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
