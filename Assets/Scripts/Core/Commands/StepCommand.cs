@@ -15,6 +15,7 @@ namespace GeckoOut.Core.Commands
         private readonly GridPosition _targetCell;
 
         private GridPosition _freedCell;
+        private GridPosition _previousEndCell;
         private bool _executed;
 
         public StepCommand(GeckoBody gecko, GeckoEnd movingEnd, GridPosition targetCell)
@@ -38,6 +39,17 @@ namespace GeckoOut.Core.Commands
         {
             get { return _movingEnd; }
         }
+        
+        public GridPosition PreviousEndCell
+        {
+            get { return _previousEndCell; }
+        }
+
+        public GridPosition FreedCell
+        {
+            get { return _freedCell; }
+        }
+            
 
         public void Execute()
         {
@@ -46,6 +58,7 @@ namespace GeckoOut.Core.Commands
                 throw new InvalidOperationException("Command was already executed.");
             }
 
+            _previousEndCell = _gecko.GetEnd(_movingEnd);
             _freedCell = _gecko.Step(_movingEnd, _targetCell);
             _executed = true;
         }
