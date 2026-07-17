@@ -9,8 +9,6 @@ namespace GeckoOut.Presentation.Board
     {
         [SerializeField] private Renderer _renderer;
 
-        private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
-
         public void Initialize(ColorId color)
         {
             RendererTint.SetBaseColor(_renderer, ColorPalette.ToUnityColor(color));
