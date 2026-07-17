@@ -13,10 +13,7 @@ namespace GeckoOut.Presentation.Board
 
         public void Initialize(ColorId color)
         {
-            var propertyBlock = new MaterialPropertyBlock();
-            _renderer.GetPropertyBlock(propertyBlock);
-            propertyBlock.SetColor(BaseColorProperty, ColorPalette.ToUnityColor(color));
-            _renderer.SetPropertyBlock(propertyBlock);
+            RendererTint.SetBaseColor(_renderer, ColorPalette.ToUnityColor(color));
         }
     }
 }

@@ -136,28 +136,5 @@ namespace GeckoOut.Tests
             Assert.That(gecko.Head, Is.EqualTo(new GridPosition(0, 1)));
             Assert.That(gecko.Length, Is.EqualTo(4));
         }
-
-        [Test]
-        public void ShrinkFrom_Tail_RemovesTailCell()
-        {
-            GeckoBody gecko = CreateGecko();
-
-            GridPosition freed = gecko.ShrinkFrom(GeckoEnd.Tail);
-
-            Assert.That(freed, Is.EqualTo(new GridPosition(2, 4)));
-            Assert.That(gecko.Length, Is.EqualTo(2));
-        }
-
-        [Test]
-        public void ShrinkFrom_UntilEmpty_LengthReachesZero()
-        {
-            GeckoBody gecko = CreateGecko();
-
-            gecko.ShrinkFrom(GeckoEnd.Tail);
-            gecko.ShrinkFrom(GeckoEnd.Tail);
-            gecko.ShrinkFrom(GeckoEnd.Tail);
-
-            Assert.That(gecko.Length, Is.EqualTo(0));
-        }
     }
 }

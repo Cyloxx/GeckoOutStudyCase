@@ -84,7 +84,7 @@ namespace GeckoOut.Tests
         public void TryStepTo_MatchingExit_RemovesGeckoAndFiresExited()
         {
             GeckoBody exitedGecko = null;
-            _session.GeckoExited += delegate(GeckoBody gecko) { exitedGecko = gecko; };
+            _session.GeckoExited += delegate(GeckoBody gecko, ExitPoint exit) { exitedGecko = gecko; };
 
             _session.TryStepTo(_red, GeckoEnd.Head, new GridPosition(2, 1));
             _session.TryStepTo(_red, GeckoEnd.Head, new GridPosition(3, 1));

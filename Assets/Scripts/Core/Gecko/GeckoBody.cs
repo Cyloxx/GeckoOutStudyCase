@@ -121,33 +121,6 @@ namespace GeckoOut.Core.Gecko
             return freedCell;
         }
 
-        /// <summary>
-        /// Removes the cell at the given end. Used while the gecko is sinking
-        /// into an exit hole, one cell per tick. Returns the freed cell.
-        /// </summary>
-        public GridPosition ShrinkFrom(GeckoEnd end)
-        {
-            if (_cells.Count == 0)
-            {
-                throw new InvalidOperationException("Body is already empty.");
-            }
-
-            GridPosition freedCell;
-
-            if (end == GeckoEnd.Head)
-            {
-                freedCell = _cells[0];
-                _cells.RemoveAt(0);
-            }
-            else
-            {
-                freedCell = _cells[_cells.Count - 1];
-                _cells.RemoveAt(_cells.Count - 1);
-            }
-
-            return freedCell;
-        }
-
         public static GeckoEnd Opposite(GeckoEnd end)
         {
             if (end == GeckoEnd.Head)

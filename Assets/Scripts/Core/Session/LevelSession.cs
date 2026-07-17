@@ -24,9 +24,10 @@ namespace GeckoOut.Core.Session
         public float RemainingSeconds { get; private set; }
 
         public event Action<GeckoBody> GeckoStepped;
-        public event Action<GeckoBody> GeckoExited;
+        public event Action<GeckoBody, ExitPoint> GeckoExited;
         public event Action LevelWon;
         public event Action LevelLost;
+        
 
         public LevelSession(BoardGrid board, IEnumerable<GeckoBody> geckos,
                             MoveValidator validator, PathResolver pathResolver,
@@ -242,7 +243,7 @@ namespace GeckoOut.Core.Session
 
             if (GeckoExited != null)
             {
-                GeckoExited(gecko);
+                GeckoExited(gecko, exit);
             }
 
             if (_activeGeckos.Count == 0)
