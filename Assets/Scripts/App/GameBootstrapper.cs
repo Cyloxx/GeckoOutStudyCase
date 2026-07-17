@@ -5,6 +5,7 @@ using GeckoOut.Data;
 using GeckoOut.Presentation.Board;
 using GeckoOut.Presentation.Cameras;
 using GeckoOut.Presentation.Gecko;
+using GeckoOut.Presentation.Input;
 using UnityEngine;
 
 namespace GeckoOut.App
@@ -21,12 +22,14 @@ namespace GeckoOut.App
         [SerializeField] private BoardCameraFitter _cameraFitter;
         [SerializeField] private int _startLevelIndex = 0;
         [SerializeField] private GeckoViewManager _geckoViewManager;
+        [SerializeField] private DragInputController _dragInputController;
+        [SerializeField] private Camera _mainCamera;
 
         private LevelSession _session;
 
         private void Awake()
         {
-            if (_levelCatalog == null || _boardViewBuilder == null || _cameraFitter == null || _geckoViewManager == null)
+            if (_levelCatalog == null || _boardViewBuilder == null || _cameraFitter == null || _geckoViewManager == null || _dragInputController == null || _mainCamera == null)
             {
                 Debug.LogError("[GameBootstrapper] Scene references are not set up.", this);
                 enabled = false;
@@ -82,6 +85,8 @@ namespace GeckoOut.App
                 _boardViewBuilder.Layout.CellSize);
             
             _geckoViewManager.Initialize(_session, _boardViewBuilder.Layout);
+            var raycaster = new BoardRaycaster(_mainCamera, _boardViewBuilder.Layout);
+            _dragInputController.Initialize(_session, raycaster);
         }
     }
 }
