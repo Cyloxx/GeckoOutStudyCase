@@ -427,7 +427,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: GeckoOut.App::GeckoOut.App.GameBootstrapper
   _levelCatalog: {fileID: 11400000, guid: bdd7a3b85d7932448a575ac9172aa41d, type: 2}
-  _startLevelIndex: 1
+  _startLevelIndex: 0
   _boardViewBuilder: {fileID: 265790228}
   _cameraFitter: {fileID: 265790227}
   _geckoViewManager: {fileID: 265790231}
