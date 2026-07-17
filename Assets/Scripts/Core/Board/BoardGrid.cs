@@ -52,10 +52,16 @@ namespace GeckoOut.Core.Board
             get { return _exitsByPosition.Values; }
         }
 
+        /// <summary>Bounds check that also works before a board instance exists.</summary>
+        public static bool IsInside(int width, int height, GridPosition position)
+        {
+            return position.X >= 0 && position.X < width
+                                   && position.Y >= 0 && position.Y < height;
+        }
+
         public bool IsInside(GridPosition position)
         {
-            return position.X >= 0 && position.X < Width
-                && position.Y >= 0 && position.Y < Height;
+            return IsInside(Width, Height, position);
         }
 
         public bool IsWall(GridPosition position)

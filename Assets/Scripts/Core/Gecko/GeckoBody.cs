@@ -29,14 +29,13 @@ namespace GeckoOut.Core.Gecko
                 throw new ArgumentException("A gecko needs at least one cell.");
             }
 
-            for (int i = 1; i < _cells.Count; i++)
+            int breakIndex = FindChainBreakIndex(_cells);
+
+            if (breakIndex >= 0)
             {
-                if (!_cells[i].IsAdjacentTo(_cells[i - 1]))
-                {
-                    throw new ArgumentException(
-                        "Body cells must form a connected chain. Break between "
-                        + _cells[i - 1] + " and " + _cells[i]);
-                }
+                throw new ArgumentException(
+                    "Body cells must form a connected chain. Break between "
+                    + _cells[breakIndex - 1] + " and " + _cells[breakIndex]);
             }
 
             var seenCells = new HashSet<GridPosition>();
@@ -100,13 +99,13 @@ namespace GeckoOut.Core.Gecko
                     "Step target must be adjacent. " + movingCell + " -> " + newCell);
             }
 
-            GridPosition freedCell = GetEnd(Opposite(movingEnd));
-
-            if (Occupies(newCell) && !newCell.Equals(freedCell))
+            if (WouldOverlapSelf(movingEnd, newCell))
             {
                 throw new InvalidOperationException(
                     "Step target overlaps the body: " + newCell);
             }
+
+            GridPosition freedCell = GetEnd(Opposite(movingEnd));
 
             if (movingEnd == GeckoEnd.Head)
             {
@@ -157,6 +156,33 @@ namespace GeckoOut.Core.Gecko
             }
 
             return GeckoEnd.Head;
+        }
+        
+        /// <summary>
+        /// Returns the index of the first cell that is not adjacent to the
+        /// cell before it, or -1 when the list forms a connected chain.
+        /// </summary>
+        public static int FindChainBreakIndex(IReadOnlyList<GridPosition> cells)
+        {
+            for (int i = 1; i < cells.Count; i++)
+            {
+                if (!cells[i].IsAdjacentTo(cells[i - 1]))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// True when moving the given end into target would land on this very
+        /// body — except the cell the opposite end frees in the same step.
+        /// </summary>
+        public bool WouldOverlapSelf(GeckoEnd movingEnd, GridPosition target)
+        {
+            GridPosition freedCell = GetEnd(Opposite(movingEnd));
+            return Occupies(target) && !target.Equals(freedCell);
         }
     }
 }

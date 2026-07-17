@@ -49,9 +49,7 @@ namespace GeckoOut.Core.Rules
                 return false;
             }
 
-            GridPosition freedCell = gecko.GetEnd(GeckoBody.Opposite(movingEnd));
-
-            if (gecko.Occupies(target) && !target.Equals(freedCell))
+            if (gecko.WouldOverlapSelf(movingEnd, target))
             {
                 return false;
             }

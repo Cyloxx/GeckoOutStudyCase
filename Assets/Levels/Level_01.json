@@ -1,0 +1,11 @@
+{
+  "levelId": 1,
+  "timeLimitSeconds": 30,
+  "gridWidth": 5,
+  "gridHeight": 5,
+  "walls": [],
+  "exits": [ { "x": 4, "y": 2, "color": "Red" } ],
+  "geckos": [
+    { "color": "Red", "cells": [ { "x": 1, "y": 2 }, { "x": 0, "y": 2 } ] }
+  ]
+}
