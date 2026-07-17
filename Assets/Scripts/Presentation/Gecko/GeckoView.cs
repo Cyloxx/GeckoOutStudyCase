@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GeckoOut.Core.Board;
 using GeckoOut.Core.Gecko;
 using GeckoOut.Presentation.Board;
 using GeckoOut.Presentation.Common;
@@ -21,6 +22,8 @@ namespace GeckoOut.Presentation.Gecko
         private readonly ObjectPool<GeckoSegmentView> _segmentPool;
         private readonly List<GeckoSegmentView> _segments = new List<GeckoSegmentView>();
         private readonly float _moveSpeed;
+        private readonly Queue<List<GridPosition>> _stepSnapshots
+            = new Queue<List<GridPosition>>();
 
         public GeckoBody Body
         {
@@ -56,15 +59,53 @@ namespace GeckoOut.Presentation.Gecko
             }
         }
 
-        /// <summary>Eases every segment toward its current cell. Called once per frame.</summary>
+        /// <summary>
+        /// Records where every cell of the body is right now. Called once
+        /// per model step, so multi-step drags become an ordered trail of
+        /// waypoints instead of one big diagonal jump.
+        /// </summary>
+        public void CaptureStepSnapshot()
+        {
+            _stepSnapshots.Enqueue(new List<GridPosition>(_body.Cells));
+        }
+        
+        /// <summary>
+        /// Moves every segment toward its target cell. Targets come from the
+        /// oldest pending step snapshot, so segments visit each cell of the
+        /// path in order; once all segments arrive, the next snapshot is taken.
+        /// </summary>
         public void Tick(float deltaSeconds)
         {
+            IReadOnlyList<GridPosition> targetCells;
+
+            if (_stepSnapshots.Count > 0)
+            {
+                targetCells = _stepSnapshots.Peek();
+            }
+            else
+            {
+                targetCells = _body.Cells;
+            }
+
+            bool allSegmentsArrived = true;
+
             for (int i = 0; i < _segments.Count; i++)
             {
-                Vector3 target = _layout.CellToWorld(_body.Cells[i]);
+                Vector3 target = _layout.CellToWorld(targetCells[i]);
+                Transform segmentTransform = _segments[i].transform;
 
-                _segments[i].transform.position = Vector3.MoveTowards(
-                    _segments[i].transform.position, target, _moveSpeed * deltaSeconds);
+                segmentTransform.position = Vector3.MoveTowards(
+                    segmentTransform.position, target, _moveSpeed * deltaSeconds);
+
+                if ((segmentTransform.position - target).sqrMagnitude > 0.0001f)
+                {
+                    allSegmentsArrived = false;
+                }
+            }
+
+            if (allSegmentsArrived && _stepSnapshots.Count > 0)
+            {
+                _stepSnapshots.Dequeue();
             }
         }
 

@@ -37,6 +37,7 @@ namespace GeckoOut.Presentation.Gecko
             _session = session;
             _layout = layout;
             _session.GeckoExited += HandleGeckoExited;
+            _session.GeckoStepped += HandleGeckoStepped;
 
             foreach (GeckoBody gecko in session.ActiveGeckos)
             {
@@ -57,6 +58,7 @@ namespace GeckoOut.Presentation.Gecko
             if (_session != null)
             {
                 _session.GeckoExited -= HandleGeckoExited;
+                _session.GeckoStepped -= HandleGeckoStepped;
             }
         }
 
@@ -65,6 +67,7 @@ namespace GeckoOut.Presentation.Gecko
             if (_session != null)
             {
                 _session.GeckoExited -= HandleGeckoExited;
+                _session.GeckoStepped -= HandleGeckoStepped;
                 _session = null;
             }
 
@@ -86,6 +89,18 @@ namespace GeckoOut.Presentation.Gecko
                     GeckoView view = _views[i];
                     _views.RemoveAt(i);
                     StartCoroutine(PlaySinkRoutine(view, exit));
+                    return;
+                }
+            }
+        }
+        
+        private void HandleGeckoStepped(GeckoBody gecko)
+        {
+            for (int i = 0; i < _views.Count; i++)
+            {
+                if (_views[i].Body == gecko)
+                {
+                    _views[i].CaptureStepSnapshot();
                     return;
                 }
             }
