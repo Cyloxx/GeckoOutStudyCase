@@ -46,7 +46,7 @@ namespace GeckoOut.Core.Board
         }
 
         // Equal positions must produce equal hashes, otherwise
-        // HashSet/Dictionary lookups break. Never skip this when Equals are overridden.
+        // HashSet/Dictionary lookups break. Never skip this when Equals is overridden.
         public override int GetHashCode()
         {
             return HashCode.Combine(X, Y);

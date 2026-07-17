@@ -12,4 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a576b9357b0fd0042a7e30aea1bc36e7, type: 3}
   m_Name: LevelCatalog
   m_EditorClassIdentifier: GeckoOut.Data::GeckoOut.Data.LevelCatalogSO
-  _levelFiles: []
+  _levelFiles:
+  - {fileID: 4900000, guid: 5e40dd89971a6e3438a5d559158c891d, type: 3}
+  - {fileID: 4900000, guid: 431c425ea0f20fd43bb81e7727d0b9e8, type: 3}
