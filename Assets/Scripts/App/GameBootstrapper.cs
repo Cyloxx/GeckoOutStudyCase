@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using GeckoOut.Core.Rules;
 using GeckoOut.Core.Session;
@@ -6,41 +7,66 @@ using GeckoOut.Presentation.Board;
 using GeckoOut.Presentation.Cameras;
 using GeckoOut.Presentation.Gecko;
 using GeckoOut.Presentation.Input;
+using GeckoOut.UI;
 using UnityEngine;
 
 namespace GeckoOut.App
 {
     /// <summary>
-    /// Composition root: the only place that news up and wires together
-    /// the pieces of the game. Loads a level, builds its view and ticks
-    /// the session. UI and input wiring will join in later phases.
+    /// Composition root and level flow: the only place that news up and
+    /// wires the pieces, loads levels in catalog order and reacts to
+    /// win/lose by showing the result panels.
     /// </summary>
     public class GameBootstrapper : MonoBehaviour
     {
+        [Header("Data")]
         [SerializeField] private LevelCatalogSO _levelCatalog;
+        [SerializeField] private int _startLevelIndex = 0;
+
+        [Header("Presentation")]
         [SerializeField] private BoardViewBuilder _boardViewBuilder;
         [SerializeField] private BoardCameraFitter _cameraFitter;
-        [SerializeField] private int _startLevelIndex = 0;
         [SerializeField] private GeckoViewManager _geckoViewManager;
         [SerializeField] private DragInputController _dragInputController;
         [SerializeField] private Camera _mainCamera;
 
+        [Header("UI")]
+        [SerializeField] private HudView _hudView;
+        [SerializeField] private ResultPanel _winPanel;
+        [SerializeField] private ResultPanel _losePanel;
+
+        [Header("Flow")]
+        [SerializeField] private float _winPanelDelaySeconds = 0.7f;
+
         private LevelSession _session;
+        private int _currentLevelIndex;
 
         private void Awake()
         {
-            if (_levelCatalog == null || _boardViewBuilder == null || _cameraFitter == null || _geckoViewManager == null || _dragInputController == null || _mainCamera == null)
+            bool referencesMissing = _levelCatalog == null
+                || _boardViewBuilder == null
+                || _cameraFitter == null
+                || _geckoViewManager == null
+                || _dragInputController == null
+                || _mainCamera == null
+                || _hudView == null
+                || _winPanel == null
+                || _losePanel == null;
+
+            if (referencesMissing)
             {
                 Debug.LogError("[GameBootstrapper] Scene references are not set up.", this);
                 enabled = false;
-                return;
             }
-
         }
 
         private void Start()
         {
-            LoadLevel(_startLevelIndex);
+            _winPanel.ActionClicked += HandleNextRequested;
+            _losePanel.ActionClicked += HandleRetryRequested;
+
+            _currentLevelIndex = _startLevelIndex;
+            LoadLevel(_currentLevelIndex);
         }
 
         private void Update()
@@ -51,8 +77,21 @@ namespace GeckoOut.App
             }
         }
 
+        private void OnDestroy()
+        {
+            _winPanel.ActionClicked -= HandleNextRequested;
+            _losePanel.ActionClicked -= HandleRetryRequested;
+
+            UnsubscribeFromSession();
+        }
+
         private void LoadLevel(int levelIndex)
         {
+            UnsubscribeFromSession();
+
+            _winPanel.Hide();
+            _losePanel.Hide();
+
             TextAsset levelFile = _levelCatalog.GetLevelFile(levelIndex);
 
             if (levelFile == null)
@@ -63,8 +102,8 @@ namespace GeckoOut.App
 
             LevelDefinition definition = new LevelDefinitionLoader().Load(levelFile.text);
 
-            var validator = new LevelValidator();
-            if (!validator.IsValid(definition, out List<string> errors))
+            var levelValidator = new LevelValidator();
+            if (!levelValidator.IsValid(definition, out List<string> errors))
             {
                 foreach (string error in errors)
                 {
@@ -80,13 +119,57 @@ namespace GeckoOut.App
             _session = new LevelSession(level.Board, level.Geckos,
                 moveValidator, new PathResolver(), level.TimeLimitSeconds);
 
+            _session.LevelWon += HandleLevelWon;
+            _session.LevelLost += HandleLevelLost;
+
             _boardViewBuilder.Build(level.Board);
             _cameraFitter.Fit(level.Board.Width, level.Board.Height,
                 _boardViewBuilder.Layout.CellSize);
-            
             _geckoViewManager.Initialize(_session, _boardViewBuilder.Layout);
+
             var raycaster = new BoardRaycaster(_mainCamera, _boardViewBuilder.Layout);
             _dragInputController.Initialize(_session, raycaster);
+
+            _hudView.Bind(_session, level.LevelId);
+        }
+
+        private void UnsubscribeFromSession()
+        {
+            if (_session == null)
+            {
+                return;
+            }
+
+            _session.LevelWon -= HandleLevelWon;
+            _session.LevelLost -= HandleLevelLost;
+        }
+
+        private void HandleLevelWon()
+        {
+            StartCoroutine(ShowWinPanelAfterDelay());
+        }
+
+        private IEnumerator ShowWinPanelAfterDelay()
+        {
+            // Let the last sink animation finish before covering the board.
+            yield return new WaitForSeconds(_winPanelDelaySeconds);
+            _winPanel.Show();
+        }
+
+        private void HandleLevelLost()
+        {
+            _losePanel.Show();
+        }
+
+        private void HandleNextRequested()
+        {
+            _currentLevelIndex = (_currentLevelIndex + 1) % _levelCatalog.LevelCount;
+            LoadLevel(_currentLevelIndex);
+        }
+
+        private void HandleRetryRequested()
+        {
+            LoadLevel(_currentLevelIndex);
         }
     }
 }
