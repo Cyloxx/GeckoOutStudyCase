@@ -1,0 +1,17 @@
+{
+  "levelId": 7,
+  "timeLimitSeconds": 50,
+  "gridWidth": 7,
+  "gridHeight": 8,
+  "walls": [ { "x": 2, "y": 5 }, { "x": 3, "y": 5 } ],
+  "exits": [
+    { "x": 0, "y": 7, "color": "Red" },
+    { "x": 6, "y": 7, "color": "Blue" },
+    { "x": 3, "y": 0, "color": "Green" }
+  ],
+  "geckos": [
+    { "color": "Red", "cells": [ { "x": 1, "y": 1 }, { "x": 1, "y": 2 }, { "x": 1, "y": 3 }, { "x": 2, "y": 3 }, { "x": 2, "y": 2 } ] },
+    { "color": "Blue", "cells": [ { "x": 4, "y": 2 }, { "x": 4, "y": 1 }, { "x": 5, "y": 1 } ] },
+    { "color": "Green", "cells": [ { "x": 5, "y": 5 }, { "x": 5, "y": 6 } ] }
+  ]
+}
