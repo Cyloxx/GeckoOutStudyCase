@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using GeckoOut.Core.Rules;
 using GeckoOut.Core.Session;
 using GeckoOut.Data;
@@ -9,6 +10,7 @@ using GeckoOut.Presentation.Gecko;
 using GeckoOut.Presentation.Input;
 using GeckoOut.UI;
 using UnityEngine;
+using GeckoOut.Core.Gecko;
 
 namespace GeckoOut.App
 {
@@ -40,9 +42,13 @@ namespace GeckoOut.App
 
         private LevelSession _session;
         private int _currentLevelIndex;
+        
+        
 
         private void Awake()
         {
+            DOTween.Init();
+            
             bool referencesMissing = _levelCatalog == null
                 || _boardViewBuilder == null
                 || _cameraFitter == null
@@ -67,6 +73,9 @@ namespace GeckoOut.App
 
             _currentLevelIndex = _startLevelIndex;
             LoadLevel(_currentLevelIndex);
+            _dragInputController.GeckoGrabbed += HandleGeckoGrabbed;
+            _dragInputController.GeckoReleased += HandleGeckoReleased;
+            
         }
 
         private void Update()
@@ -83,6 +92,19 @@ namespace GeckoOut.App
             _losePanel.ActionClicked -= HandleRetryRequested;
 
             UnsubscribeFromSession();
+            
+            _dragInputController.GeckoGrabbed -= HandleGeckoGrabbed;
+            _dragInputController.GeckoReleased -= HandleGeckoReleased;
+        }
+        
+        private void HandleGeckoGrabbed(GeckoBody gecko, GeckoEnd end)
+        {
+            _geckoViewManager.SetGrabbed(gecko, end);
+        }
+
+        private void HandleGeckoReleased()
+        {
+            _geckoViewManager.ClearGrabbed();
         }
 
         private void LoadLevel(int levelIndex)
@@ -128,7 +150,7 @@ namespace GeckoOut.App
             _geckoViewManager.Initialize(_session, _boardViewBuilder.Layout);
 
             var raycaster = new BoardRaycaster(_mainCamera, _boardViewBuilder.Layout);
-            _dragInputController.Initialize(_session, raycaster);
+            _dragInputController.Initialize(_session, raycaster, _boardViewBuilder.Layout);
 
             _hudView.Bind(_session, level.LevelId);
         }

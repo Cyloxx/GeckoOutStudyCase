@@ -468,6 +468,7 @@ MonoBehaviour:
   _geckoRoot: {fileID: 511496319}
   _segmentMoveSpeed: 14
   _sinkDurationPerSegment: 0.09
+  _cameraShake: {fileID: 0}
 --- !u!1 &379306711
 GameObject:
   m_ObjectHideFlags: 0
@@ -1298,6 +1299,7 @@ GameObject:
   - component: {fileID: 987105847}
   - component: {fileID: 987105846}
   - component: {fileID: 987105849}
+  - component: {fileID: 987105850}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1423,6 +1425,21 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &987105850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 987105845}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c531504887e98040b7206d0e23f6ba4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GeckoOut.Presentation::GeckoOut.Presentation.Cameras.CameraShake
+  _shakeTarget: {fileID: 987105848}
+  _defaultStrength: 0.25
+  _defaultDuration: 0.25
 --- !u!1 &1049067274
 GameObject:
   m_ObjectHideFlags: 0

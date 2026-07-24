@@ -4,6 +4,7 @@ using GeckoOut.Core.Gecko;
 using GeckoOut.Presentation.Board;
 using GeckoOut.Presentation.Common;
 using UnityEngine;
+using DG.Tweening;
 
 namespace GeckoOut.Presentation.Gecko
 {
@@ -16,6 +17,9 @@ namespace GeckoOut.Presentation.Gecko
     {
         private const float HeadScale = 0.85f;
         private const float BodyScale = 0.68f;
+        private const float CatchUpPerPendingStep = 0.9f;
+        private const float GrabPopDuration = 0.18f;
+        private const float GrabReturnDuration = 0.12f;
 
         private readonly GeckoBody _body;
         private readonly BoardLayout _layout;
@@ -24,6 +28,11 @@ namespace GeckoOut.Presentation.Gecko
         private readonly float _moveSpeed;
         private readonly Queue<List<GridPosition>> _stepSnapshots
             = new Queue<List<GridPosition>>();
+        
+        private const float GrabScaleMultiplier = 1.25f;
+
+        private Color _baseColor;
+        private Color _bodyColor;
 
         public GeckoBody Body
         {
@@ -43,8 +52,8 @@ namespace GeckoOut.Presentation.Gecko
             _segmentPool = segmentPool;
             _moveSpeed = moveSpeed;
 
-            Color baseColor = ColorPalette.ToUnityColor(body.Color);
-            Color bodyColor = baseColor * 0.75f;
+            _baseColor = ColorPalette.ToUnityColor(body.Color);
+            _bodyColor = _baseColor * 0.75f;
 
             for (int i = 0; i < body.Cells.Count; i++)
             {
@@ -53,7 +62,7 @@ namespace GeckoOut.Presentation.Gecko
                 bool isHead = i == 0;
                 segment.transform.position = _layout.CellToWorld(body.Cells[i]);
                 segment.transform.localScale = Vector3.one * (isHead ? HeadScale : BodyScale);
-                segment.SetColor(isHead ? baseColor : bodyColor);
+                segment.SetColor(isHead ? _baseColor : _bodyColor);
 
                 _segments.Add(segment);
             }
@@ -70,9 +79,10 @@ namespace GeckoOut.Presentation.Gecko
         }
         
         /// <summary>
-        /// Moves every segment toward its target cell. Targets come from the
-        /// oldest pending step snapshot, so segments visit each cell of the
-        /// path in order; once all segments arrive, the next snapshot is taken.
+        /// Eases every segment toward its target cell. Uses exponential
+        /// smoothing so motion starts quickly and decelerates into a soft
+        /// stop; the rate scales with how many steps are still queued, so
+        /// fast drags catch up to the finger while single steps stay gentle.
         /// </summary>
         public void Tick(float deltaSeconds)
         {
@@ -87,6 +97,10 @@ namespace GeckoOut.Presentation.Gecko
                 targetCells = _body.Cells;
             }
 
+            float pendingSteps = _stepSnapshots.Count;
+            float rate = _moveSpeed * (1f + pendingSteps * CatchUpPerPendingStep);
+            float t = 1f - Mathf.Exp(-rate * deltaSeconds);
+
             bool allSegmentsArrived = true;
 
             for (int i = 0; i < _segments.Count; i++)
@@ -94,13 +108,18 @@ namespace GeckoOut.Presentation.Gecko
                 Vector3 target = _layout.CellToWorld(targetCells[i]);
                 Transform segmentTransform = _segments[i].transform;
 
-                segmentTransform.position = Vector3.MoveTowards(
-                    segmentTransform.position, target, _moveSpeed * deltaSeconds);
+                Vector3 next = Vector3.Lerp(segmentTransform.position, target, t);
 
-                if ((segmentTransform.position - target).sqrMagnitude > 0.0001f)
+                if ((next - target).sqrMagnitude < 0.00025f)
+                {
+                    next = target;
+                }
+                else
                 {
                     allSegmentsArrived = false;
                 }
+
+                segmentTransform.position = next;
             }
 
             if (allSegmentsArrived && _stepSnapshots.Count > 0)
@@ -127,6 +146,57 @@ namespace GeckoOut.Presentation.Gecko
         public void ForgetSegments()
         {
             _segments.Clear();
+        }
+        
+        public void SetGrabbed(GeckoEnd end)
+        {
+            int index = EndSegmentIndex(end);
+            if (index < 0)
+            {
+                return;
+            }
+
+            float baseScale = end == GeckoEnd.Head ? HeadScale : BodyScale;
+            Transform segmentTransform = _segments[index].transform;
+
+            segmentTransform.DOKill();
+            segmentTransform.DOScale(baseScale * GrabScaleMultiplier, GrabPopDuration)
+                .SetEase(Ease.OutBack);
+
+            _segments[index].SetColor(Color.Lerp(EndBaseColor(end), Color.white, 0.35f));
+        }
+
+        public void ClearGrab(GeckoEnd end)
+        {
+            int index = EndSegmentIndex(end);
+            if (index < 0)
+            {
+                return;
+            }
+
+            float baseScale = end == GeckoEnd.Head ? HeadScale : BodyScale;
+            Transform segmentTransform = _segments[index].transform;
+
+            segmentTransform.DOKill();
+            segmentTransform.DOScale(baseScale, GrabReturnDuration)
+                .SetEase(Ease.OutQuad);
+
+            _segments[index].SetColor(EndBaseColor(end));
+        }
+
+        private int EndSegmentIndex(GeckoEnd end)
+        {
+            if (_segments.Count == 0)
+            {
+                return -1;
+            }
+
+            return end == GeckoEnd.Head ? 0 : _segments.Count - 1;
+        }
+
+        private Color EndBaseColor(GeckoEnd end)
+        {
+            return end == GeckoEnd.Head ? _baseColor : _bodyColor;
         }
     }
 }

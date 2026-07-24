@@ -25,20 +25,20 @@ namespace GeckoOut.Core.Board
                     "Board dimensions must be positive. Got: " + width + "x" + height);
             }
 
-            if (walls == null)
-            {
-                throw new ArgumentNullException(nameof(walls));
-            }
+                if (walls == null)
+                {
+                    throw new ArgumentNullException(nameof(walls));
+                }
 
-            if (exits == null)
-            {
-                throw new ArgumentNullException(nameof(exits));
-            }
+                if (exits == null)
+                {
+                    throw new ArgumentNullException(nameof(exits));
+                }
 
-            Width = width;
-            Height = height;
+                Width = width;
+                Height = height;
 
-            _walls = new HashSet<GridPosition>(walls);
+                _walls = new HashSet<GridPosition>(walls);
 
             _exitsByPosition = new Dictionary<GridPosition, ExitPoint>();
             foreach (ExitPoint exit in exits)

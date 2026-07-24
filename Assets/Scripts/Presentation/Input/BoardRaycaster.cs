@@ -34,6 +34,19 @@ namespace GeckoOut.Presentation.Input
         {
             cell = default;
 
+            if (!TryGetWorldPoint(screenPoint, out Vector3 worldPoint))
+            {
+                return false;
+            }
+
+            cell = _layout.WorldToCell(worldPoint);
+            return true;
+        }
+        
+        public bool TryGetWorldPoint(Vector2 screenPoint, out Vector3 worldPoint)
+        {
+            worldPoint = default;
+
             Ray ray = _camera.ScreenPointToRay(screenPoint);
             var boardPlane = new Plane(Vector3.up, 0f);
 
@@ -42,9 +55,10 @@ namespace GeckoOut.Presentation.Input
                 return false;
             }
 
-            Vector3 worldPoint = ray.GetPoint(distanceAlongRay);
-            cell = _layout.WorldToCell(worldPoint);
+            worldPoint = ray.GetPoint(distanceAlongRay);
             return true;
         }
+        
+        
     }
 }

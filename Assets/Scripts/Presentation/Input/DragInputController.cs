@@ -1,6 +1,8 @@
+using System;
 using GeckoOut.Core.Board;
 using GeckoOut.Core.Gecko;
 using GeckoOut.Core.Session;
+using GeckoOut.Presentation.Board;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -18,11 +20,18 @@ namespace GeckoOut.Presentation.Input
 
         private GeckoBody _draggedGecko;
         private GeckoEnd _draggedEnd;
+        
+        private BoardLayout _layout;
+        private float _grabRadiusInCells = 0.75f;
+        
+        public event Action<GeckoBody, GeckoEnd> GeckoGrabbed;
+        public event Action GeckoReleased;
 
-        public void Initialize(LevelSession session, BoardRaycaster raycaster)
+        public void Initialize(LevelSession session, BoardRaycaster raycaster, BoardLayout layout)
         {
             _session = session;
             _raycaster = raycaster;
+            _layout = layout;
             _draggedGecko = null;
         }
 
@@ -56,32 +65,58 @@ namespace GeckoOut.Presentation.Input
 
             if (pointer.press.wasReleasedThisFrame)
             {
+                if (_draggedGecko != null && GeckoReleased != null)
+                {
+                    GeckoReleased();
+                }
+
                 _draggedGecko = null;
             }
         }
 
         private void TryBeginDrag(Vector2 screenPosition)
         {
-            if (!_raycaster.TryGetCellUnderScreenPoint(screenPosition, out GridPosition cell))
+            if (!_raycaster.TryGetWorldPoint(screenPosition, out Vector3 worldPoint))
             {
                 return;
             }
 
+            float bestDistanceSqr = float.MaxValue;
+            GeckoBody bestGecko = null;
+            GeckoEnd bestEnd = GeckoEnd.Head;
+
             foreach (GeckoBody gecko in _session.ActiveGeckos)
             {
-                if (gecko.Head.Equals(cell))
-                {
-                    _draggedGecko = gecko;
-                    _draggedEnd = GeckoEnd.Head;
-                    return;
-                }
+                ConsiderEnd(gecko, GeckoEnd.Head, worldPoint, ref bestDistanceSqr, ref bestGecko, ref bestEnd);
+                ConsiderEnd(gecko, GeckoEnd.Tail, worldPoint, ref bestDistanceSqr, ref bestGecko, ref bestEnd);
+            }
 
-                if (gecko.Tail.Equals(cell))
+            float grabRadiusWorld = _grabRadiusInCells * _layout.CellSize;
+
+            if (bestGecko != null && bestDistanceSqr <= grabRadiusWorld * grabRadiusWorld)
+            {
+                _draggedGecko = bestGecko;
+                _draggedEnd = bestEnd;
+
+                if (GeckoGrabbed != null)
                 {
-                    _draggedGecko = gecko;
-                    _draggedEnd = GeckoEnd.Tail;
-                    return;
+                    GeckoGrabbed(_draggedGecko, _draggedEnd);
                 }
+            }
+            
+        }
+
+        private void ConsiderEnd(GeckoBody gecko, GeckoEnd end, Vector3 worldPoint,
+            ref float bestDistanceSqr, ref GeckoBody bestGecko, ref GeckoEnd bestEnd)
+        {
+            Vector3 endWorld = _layout.CellToWorld(gecko.GetEnd(end));
+            float distanceSqr = (endWorld - worldPoint).sqrMagnitude;
+
+            if (distanceSqr < bestDistanceSqr)
+            {
+                bestDistanceSqr = distanceSqr;
+                bestGecko = gecko;
+                bestEnd = end;
             }
         }
 

@@ -42,7 +42,7 @@ namespace GeckoOut.Core.Rules
             }
 
             var frontier = new Queue<GridPosition>();
-            var visited = new HashSet<GridPosition>();
+            var visited = new HashSet<GridPosition>();  
             var cameFrom = new Dictionary<GridPosition, GridPosition>();
 
             frontier.Enqueue(start);
@@ -80,7 +80,7 @@ namespace GeckoOut.Core.Rules
             }
 
             return false;
-        }
+        }   
 
         private void BuildPath(GridPosition start, GridPosition target,
                                Dictionary<GridPosition, GridPosition> cameFrom,
@@ -89,7 +89,7 @@ namespace GeckoOut.Core.Rules
             GridPosition current = target;
 
             while (!current.Equals(start))
-            {
+            {       
                 path.Add(current);
                 current = cameFrom[current];
             }

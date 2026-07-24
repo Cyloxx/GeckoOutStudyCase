@@ -19,11 +19,15 @@ namespace GeckoOut.Presentation.Gecko
         [SerializeField] private Transform _geckoRoot;
         [SerializeField] private float _segmentMoveSpeed = 14f;
         [SerializeField] private float _sinkDurationPerSegment = 0.09f;
+        [SerializeField] private Cameras.CameraShake _cameraShake;
 
         private ObjectPool<GeckoSegmentView> _segmentPool;
         private readonly List<GeckoView> _views = new List<GeckoView>();
         private LevelSession _session;
         private BoardLayout _layout;
+        
+        private GeckoView _grabbedView;
+        private GeckoEnd _grabbedEnd;
 
         public void Initialize(LevelSession session, BoardLayout layout)
         {
@@ -61,6 +65,31 @@ namespace GeckoOut.Presentation.Gecko
                 _session.GeckoStepped -= HandleGeckoStepped;
             }
         }
+        
+        public void SetGrabbed(GeckoBody gecko, GeckoEnd end)
+        {
+            ClearGrabbed();
+
+            for (int i = 0; i < _views.Count; i++)
+            {
+                if (_views[i].Body == gecko)
+                {
+                    _views[i].SetGrabbed(end);
+                    _grabbedView = _views[i];
+                    _grabbedEnd = end;
+                    return;
+                }
+            }
+        }
+
+        public void ClearGrabbed()
+        {
+            if (_grabbedView != null)
+            {
+                _grabbedView.ClearGrab(_grabbedEnd);
+                _grabbedView = null;
+            }
+        }
 
         private void Clear()
         {
@@ -77,6 +106,7 @@ namespace GeckoOut.Presentation.Gecko
             }
 
             _views.Clear();
+            _grabbedView = null;
             StopAllCoroutines();
         }
 
@@ -88,6 +118,12 @@ namespace GeckoOut.Presentation.Gecko
                 {
                     GeckoView view = _views[i];
                     _views.RemoveAt(i);
+
+                    if (_cameraShake)
+                    {
+                        _cameraShake.Shake();
+                    }
+
                     StartCoroutine(PlaySinkRoutine(view, exit));
                     return;
                 }

@@ -89,7 +89,7 @@ namespace GeckoOut.Core.Gecko
         /// Slides the body one step: the given end moves into newCell and the
         /// opposite end leaves its cell. Returns the cell that was freed.
         /// </summary>
-        public GridPosition Step(GeckoEnd movingEnd, GridPosition newCell)
+        public GridPosition StepAndGetFreedCell(GeckoEnd movingEnd, GridPosition newCell)
         {
             GridPosition movingCell = GetEnd(movingEnd);
 

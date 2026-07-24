@@ -59,7 +59,7 @@ namespace GeckoOut.Core.Commands
             }
 
             _previousEndCell = _gecko.GetEnd(_movingEnd);
-            _freedCell = _gecko.Step(_movingEnd, _targetCell);
+            _freedCell = _gecko.StepAndGetFreedCell(_movingEnd, _targetCell);
             _executed = true;
         }
 
@@ -71,7 +71,7 @@ namespace GeckoOut.Core.Commands
             }
 
             GeckoEnd oppositeEnd = GeckoBody.Opposite(_movingEnd);
-            _gecko.Step(oppositeEnd, _freedCell);
+            _gecko.StepAndGetFreedCell(oppositeEnd, _freedCell);
             _executed = false;
         }
     }

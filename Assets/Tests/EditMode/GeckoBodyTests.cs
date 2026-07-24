@@ -81,7 +81,7 @@ namespace GeckoOut.Tests
         {
             GeckoBody gecko = CreateGecko();
 
-            GridPosition freed = gecko.Step(GeckoEnd.Head, new GridPosition(2, 1));
+            GridPosition freed = gecko.StepAndGetFreedCell(GeckoEnd.Head, new GridPosition(2, 1));
 
             Assert.That(gecko.Head, Is.EqualTo(new GridPosition(2, 1)));
             Assert.That(gecko.Tail, Is.EqualTo(new GridPosition(2, 3)));
@@ -94,7 +94,7 @@ namespace GeckoOut.Tests
         {
             GeckoBody gecko = CreateGecko();
 
-            GridPosition freed = gecko.Step(GeckoEnd.Tail, new GridPosition(2, 5));
+            GridPosition freed = gecko.StepAndGetFreedCell(GeckoEnd.Tail, new GridPosition(2, 5));
 
             Assert.That(gecko.Tail, Is.EqualTo(new GridPosition(2, 5)));
             Assert.That(gecko.Head, Is.EqualTo(new GridPosition(2, 3)));
@@ -106,7 +106,7 @@ namespace GeckoOut.Tests
         {
             Assert.Throws<System.InvalidOperationException>(delegate
             {
-                CreateGecko().Step(GeckoEnd.Head, new GridPosition(4, 4));
+                CreateGecko().StepAndGetFreedCell(GeckoEnd.Head, new GridPosition(4, 4));
             });
         }
 
@@ -115,7 +115,7 @@ namespace GeckoOut.Tests
         {
             Assert.Throws<System.InvalidOperationException>(delegate
             {
-                CreateGecko().Step(GeckoEnd.Head, new GridPosition(2, 3));
+                CreateGecko().StepAndGetFreedCell(GeckoEnd.Head, new GridPosition(2, 3));
             });
         }
 
@@ -131,7 +131,7 @@ namespace GeckoOut.Tests
                 new GridPosition(0, 1)
             });
 
-            gecko.Step(GeckoEnd.Head, new GridPosition(0, 1));
+            gecko.StepAndGetFreedCell(GeckoEnd.Head, new GridPosition(0, 1));
 
             Assert.That(gecko.Head, Is.EqualTo(new GridPosition(0, 1)));
             Assert.That(gecko.Length, Is.EqualTo(4));
