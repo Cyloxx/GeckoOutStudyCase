@@ -37,9 +37,11 @@ namespace GeckoOut.App
         [SerializeField] private HudView _hudView;
         [SerializeField] private ResultPanel _winPanel;
         [SerializeField] private ResultPanel _losePanel;
+        [SerializeField] private ParticleSystem _winParticlePrefab;
+        [SerializeField] private float _winParticleHeight = 2f;
 
         [Header("Flow")]
-        [SerializeField] private float _winPanelDelaySeconds = 0.7f;
+        [SerializeField] private float _winPanelDelaySeconds = 1.2f;
 
         private LevelSession _session;
         private int _currentLevelIndex;
@@ -177,6 +179,15 @@ namespace GeckoOut.App
 
         private void HandleLevelWon()
         {
+            if (_winParticlePrefab)
+            {
+                ParticleSystem confetti = Instantiate(_winParticlePrefab,
+                    new Vector3(0f, _winParticleHeight, 0f),
+                    _winParticlePrefab.transform.rotation);
+                confetti.Play();
+                Destroy(confetti.gameObject, 4f);
+            }
+
             StartCoroutine(ShowWinPanelAfterDelay());
         }
         

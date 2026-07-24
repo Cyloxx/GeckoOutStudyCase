@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,6 +15,8 @@ namespace GeckoOut.UI
         [SerializeField] private Button _actionButton;
 
         public event Action ActionClicked;
+        [SerializeField] private RectTransform _content;
+        [SerializeField] private float _popDuration = 0.35f;
 
         private void Awake()
         {
@@ -28,10 +31,24 @@ namespace GeckoOut.UI
         public void Show()
         {
             gameObject.SetActive(true);
+
+            if (_content == null)
+            {
+                return;
+            }
+
+            _content.DOKill();
+            _content.localScale = Vector3.one * 0.6f;
+            _content.DOScale(1f, _popDuration).SetEase(Ease.OutBack);
         }
 
         public void Hide()
         {
+            if (_content != null)
+            {
+                _content.DOKill();
+            }
+
             gameObject.SetActive(false);
         }
 

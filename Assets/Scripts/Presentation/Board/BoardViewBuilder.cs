@@ -73,7 +73,8 @@ namespace GeckoOut.Presentation.Board
             if (_exitParticlePrefab != null)
             {
                 ParticleSystem particles = Instantiate(_exitParticlePrefab,
-                    Layout.CellToWorld(cell), _exitParticlePrefab.transform.rotation);
+                    Layout.CellToWorld(cell) + Vector3.up * 0.5f,
+                    _exitParticlePrefab.transform.rotation);
                 particles.Play();
                 Destroy(particles.gameObject, 2f);
             }
