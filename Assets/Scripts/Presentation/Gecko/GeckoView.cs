@@ -20,6 +20,9 @@ namespace GeckoOut.Presentation.Gecko
         private const float CatchUpPerPendingStep = 0.9f;
         private const float GrabPopDuration = 0.18f;
         private const float GrabReturnDuration = 0.12f;
+        private const float GrabScaleMultiplier = 1.25f;
+        private const float MaxStretch = 0.35f;
+        private const float StretchSpeedReference = 12f;
 
         private readonly GeckoBody _body;
         private readonly BoardLayout _layout;
@@ -28,8 +31,10 @@ namespace GeckoOut.Presentation.Gecko
         private readonly float _moveSpeed;
         private readonly Queue<List<GridPosition>> _stepSnapshots
             = new Queue<List<GridPosition>>();
+        private readonly List<Vector3> _previousPositions = new List<Vector3>();
         
-        private const float GrabScaleMultiplier = 1.25f;
+       
+        
 
         private Color _baseColor;
         private Color _bodyColor;
@@ -65,6 +70,8 @@ namespace GeckoOut.Presentation.Gecko
                 segment.SetColor(isHead ? _baseColor : _bodyColor);
 
                 _segments.Add(segment);
+                segment.SetStretch(Vector3.forward, 0f);
+                _previousPositions.Add(segment.transform.position);
             }
         }
 
@@ -119,13 +126,30 @@ namespace GeckoOut.Presentation.Gecko
                     allSegmentsArrived = false;
                 }
 
+                Vector3 frameDelta = next - _previousPositions[i];
+                _previousPositions[i] = next;
+
                 segmentTransform.position = next;
+                ApplyStretch(i, frameDelta, deltaSeconds);
             }
 
             if (allSegmentsArrived && _stepSnapshots.Count > 0)
             {
                 _stepSnapshots.Dequeue();
             }
+        }
+        
+        private void ApplyStretch(int segmentIndex, Vector3 frameDelta, float deltaSeconds)
+        {
+            if (deltaSeconds <= 0f)
+            {
+                return;
+            }
+
+            float speed = frameDelta.magnitude / deltaSeconds;
+            float amount = Mathf.Clamp01(speed / StretchSpeedReference) * MaxStretch;
+
+            _segments[segmentIndex].SetStretch(frameDelta, amount);
         }
 
         /// <summary>Returns all segments to the pool (level teardown).</summary>

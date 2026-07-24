@@ -136,3 +136,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: GeckoOut.Presentation::GeckoOut.Presentation.Gecko.GeckoSegmentView
   _renderer: {fileID: 1757611890237427475}
+  _visual: {fileID: 211679529922671342}
