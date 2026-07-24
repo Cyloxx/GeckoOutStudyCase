@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
+using GeckoOut.Core.Board;
 using GeckoOut.Core.Rules;
 using GeckoOut.Core.Session;
 using GeckoOut.Data;
@@ -84,6 +85,7 @@ namespace GeckoOut.App
             {
                 _session.Tick(Time.deltaTime);
             }
+            _dragInputController.MoveBlocked += HandleMoveBlocked;
         }
 
         private void OnDestroy()
@@ -95,6 +97,7 @@ namespace GeckoOut.App
             
             _dragInputController.GeckoGrabbed -= HandleGeckoGrabbed;
             _dragInputController.GeckoReleased -= HandleGeckoReleased;
+            _dragInputController.MoveBlocked -= HandleMoveBlocked;
         }
         
         private void HandleGeckoGrabbed(GeckoBody gecko, GeckoEnd end)
@@ -105,6 +108,10 @@ namespace GeckoOut.App
         private void HandleGeckoReleased()
         {
             _geckoViewManager.ClearGrabbed();
+        }
+        private void HandleMoveBlocked(GeckoBody gecko, GeckoEnd end)
+        {
+            _geckoViewManager.PlayBlocked(gecko, end);
         }
 
         private void LoadLevel(int levelIndex)
@@ -143,6 +150,7 @@ namespace GeckoOut.App
 
             _session.LevelWon += HandleLevelWon;
             _session.LevelLost += HandleLevelLost;
+            _session.GeckoExited += HandleGeckoExited;
 
             _boardViewBuilder.Build(level.Board);
             _cameraFitter.Fit(level.Board.Width, level.Board.Height,
@@ -164,11 +172,17 @@ namespace GeckoOut.App
 
             _session.LevelWon -= HandleLevelWon;
             _session.LevelLost -= HandleLevelLost;
+            _session.GeckoExited -= HandleGeckoExited;
         }
 
         private void HandleLevelWon()
         {
             StartCoroutine(ShowWinPanelAfterDelay());
+        }
+        
+        private void HandleGeckoExited(GeckoBody gecko, ExitPoint exit)
+        {
+            _boardViewBuilder.PlayExitFeedback(exit.Position);
         }
 
         private IEnumerator ShowWinPanelAfterDelay()

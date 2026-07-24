@@ -165,6 +165,29 @@ namespace GeckoOut.Presentation.Gecko
 
             _segments[index].SetColor(Color.Lerp(EndBaseColor(end), Color.white, 0.35f));
         }
+        
+        public void PlayBlockedBump(GeckoEnd end)
+        {
+            int index = EndSegmentIndex(end);
+            if (index < 0)
+            {
+                return;
+            }
+
+            // The blocked end is always the grabbed one, so its resting size
+            // is the grab size. Reset to it explicitly before animating, so
+            // repeated bumps can never accumulate.
+            float baseScale = end == GeckoEnd.Head ? HeadScale : BodyScale;
+            float restingScale = baseScale * GrabScaleMultiplier;
+
+            Transform segmentTransform = _segments[index].transform;
+
+            segmentTransform.DOKill();
+            segmentTransform.localScale = Vector3.one * restingScale;
+            segmentTransform.DOScale(restingScale * 1.1f, 0.07f)
+                .SetLoops(2, LoopType.Yoyo)
+                .SetEase(Ease.OutQuad);
+        }
 
         public void ClearGrab(GeckoEnd end)
         {

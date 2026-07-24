@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using GeckoOut.Core.Board;
 using GeckoOut.Core.Gecko;
 using GeckoOut.Core.Session;
@@ -141,39 +142,69 @@ namespace GeckoOut.Presentation.Gecko
                 }
             }
         }
+        
+        public void PlayBlocked(GeckoBody gecko, GeckoEnd end)
+        {
+            for (int i = 0; i < _views.Count; i++)
+            {
+                if (_views[i].Body == gecko)
+                {
+                    _views[i].PlayBlockedBump(end);
+                    break;
+                }
+            }
 
+            if (_cameraShake)
+            {
+                _cameraShake.Shake(0.05f, 0.12f);
+            }
+        }
+
+        /// <summary>
+        /// Slides the body into the hole along its own trail: every tick the
+        /// whole chain advances one cell toward the exit and the front-most
+        /// segment sinks. No diagonal shortcuts — segments follow the path.
+        /// </summary>
         private IEnumerator PlaySinkRoutine(GeckoView view, ExitPoint exit)
         {
-            IReadOnlyList<GeckoSegmentView> segments = view.Segments;
             bool headExited = view.Body.Head.Equals(exit.Position);
-            Vector3 holePosition = _layout.CellToWorld(exit.Position);
 
-            int count = segments.Count;
+            var path = new List<GridPosition>(view.Body.Cells);
+            var ordered = new List<GeckoSegmentView>(view.Segments);
 
-            for (int i = 0; i < count; i++)
+            // Order both lists so index 0 is the end that entered the hole.
+            if (!headExited)
             {
-                GeckoSegmentView segment = headExited ? segments[i] : segments[count - 1 - i];
-
-                Vector3 startPosition = segment.transform.position;
-                Vector3 startScale = segment.transform.localScale;
-                float elapsed = 0f;
-
-                while (elapsed < _sinkDurationPerSegment)
-                {
-                    float t = elapsed / _sinkDurationPerSegment;
-
-                    segment.transform.position = Vector3.Lerp(startPosition, holePosition, t);
-                    segment.transform.localScale = startScale * (1f - t);
-
-                    elapsed += Time.deltaTime;
-                    yield return null;
-                }
-
-                segment.transform.localScale = startScale;
-                _segmentPool.Release(segment);
+                path.Reverse();
+                ordered.Reverse();
             }
 
             view.ForgetSegments();
+
+            int count = ordered.Count;
+
+            for (int tick = 1; tick <= count; tick++)
+            {
+                GeckoSegmentView sinking = ordered[tick - 1];
+
+                sinking.transform.DOKill();
+                sinking.transform.DOScale(0f, _sinkDurationPerSegment).SetEase(Ease.InQuad);
+
+                for (int j = tick; j < count; j++)
+                {
+                    Vector3 target = _layout.CellToWorld(path[j - tick]);
+
+                    ordered[j].transform.DOKill();
+                    ordered[j].transform.DOMove(target, _sinkDurationPerSegment)
+                        .SetEase(Ease.Linear);
+                }
+
+                yield return new WaitForSeconds(_sinkDurationPerSegment);
+
+                sinking.transform.DOKill();
+                sinking.transform.localScale = Vector3.one;
+                _segmentPool.Release(sinking);
+            }
         }
     }
 }

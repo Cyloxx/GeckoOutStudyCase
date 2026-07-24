@@ -25,7 +25,13 @@ namespace GeckoOut.Presentation.Input
         private float _grabRadiusInCells = 0.75f;
         
         public event Action<GeckoBody, GeckoEnd> GeckoGrabbed;
+        public event Action<GeckoBody, GeckoEnd> MoveBlocked;
+        
         public event Action GeckoReleased;
+        
+        private const float BlockedFeedbackCooldown = 0.35f;
+
+        private float _lastBlockedFeedbackTime;
 
         public void Initialize(LevelSession session, BoardRaycaster raycaster, BoardLayout layout)
         {
@@ -132,7 +138,26 @@ namespace GeckoOut.Presentation.Input
                 return;
             }
 
-            _session.TryDragTo(_draggedGecko, _draggedEnd, cell);
+            bool moved = _session.TryDragTo(_draggedGecko, _draggedEnd, cell);
+
+            if (!moved)
+            {
+                RaiseBlockedFeedback();
+            }
+        }
+        private void RaiseBlockedFeedback()
+        {
+            if (Time.time - _lastBlockedFeedbackTime < BlockedFeedbackCooldown)
+            {
+                return;
+            }
+
+            _lastBlockedFeedbackTime = Time.time;
+
+            if (MoveBlocked != null)
+            {
+                MoveBlocked(_draggedGecko, _draggedEnd);
+            }
         }
     }
 }
