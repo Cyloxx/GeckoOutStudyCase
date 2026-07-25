@@ -34,7 +34,11 @@ namespace GeckoOut.Presentation.Gecko
         private readonly List<Vector3> _previousPositions = new List<Vector3>();
         
        
-        
+       private bool _dragActive;
+       private GeckoEnd _dragEnd;
+       private GridPosition _dragLeadCell;
+       private bool _dragHasLead;
+       private float _dragProgress;        
 
         private Color _baseColor;
         private Color _bodyColor;
@@ -83,6 +87,20 @@ namespace GeckoOut.Presentation.Gecko
         public void CaptureStepSnapshot()
         {
             _stepSnapshots.Enqueue(new List<GridPosition>(_body.Cells));
+        }
+        
+        public void SetDragRender(GeckoEnd end, GridPosition leadCell, bool hasLead, float progress)
+        {
+            _dragActive = true;
+            _dragEnd = end;
+            _dragLeadCell = leadCell;
+            _dragHasLead = hasLead;
+            _dragProgress = progress;
+        }
+
+        public void ClearDragRender()
+        {
+            _dragActive = false;
         }
         
         /// <summary>

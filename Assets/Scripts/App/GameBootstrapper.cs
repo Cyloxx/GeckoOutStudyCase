@@ -178,7 +178,8 @@ namespace GeckoOut.App
             _geckoViewManager.Initialize(_session, _boardViewBuilder.Layout);
 
             var raycaster = new BoardRaycaster(_mainCamera, _boardViewBuilder.Layout);
-            _dragInputController.Initialize(_session, raycaster, _boardViewBuilder.Layout);
+            _dragInputController.Initialize(_session, raycaster,
+                _boardViewBuilder.Layout, _geckoViewManager);
 
             _hudView.Bind(_session, level.LevelId);
         }

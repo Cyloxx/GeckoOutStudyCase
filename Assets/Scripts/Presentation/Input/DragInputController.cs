@@ -3,41 +3,43 @@ using GeckoOut.Core.Board;
 using GeckoOut.Core.Gecko;
 using GeckoOut.Core.Session;
 using GeckoOut.Presentation.Board;
+using GeckoOut.Presentation.Gecko;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace GeckoOut.Presentation.Input
 {
     /// <summary>
-    /// Translates pointer input (mouse or touch) into session intents.
-    /// Contains zero game rules: it only figures out which gecko end was
-    /// grabbed and tells the session where that end wants to go.
+    /// Translates pointer input into session intents. The model still commits
+    /// discrete steps toward the finger's nearest cell; this class additionally
+    /// feeds the view a sub-cell "lead" (which neighbour, how far) so the
+    /// grabbed gecko can follow the finger continuously between cells.
     /// </summary>
     public class DragInputController : MonoBehaviour
     {
+        private const float BlockedFeedbackCooldown = 0.35f;
+
+        public event Action<GeckoBody, GeckoEnd> GeckoGrabbed;
+        public event Action<GeckoBody, GeckoEnd> MoveBlocked;
+        public event Action GeckoReleased;
+
         private LevelSession _session;
         private BoardRaycaster _raycaster;
+        private BoardLayout _layout;
+        private GeckoViewManager _viewManager;
 
         private GeckoBody _draggedGecko;
         private GeckoEnd _draggedEnd;
-        
-        private BoardLayout _layout;
-        private float _grabRadiusInCells = 0.75f;
-        
-        public event Action<GeckoBody, GeckoEnd> GeckoGrabbed;
-        public event Action<GeckoBody, GeckoEnd> MoveBlocked;
-        
-        public event Action GeckoReleased;
-        
-        private const float BlockedFeedbackCooldown = 0.35f;
-
         private float _lastBlockedFeedbackTime;
+        private float _grabRadiusInCells = 0.75f;
 
-        public void Initialize(LevelSession session, BoardRaycaster raycaster, BoardLayout layout)
+        public void Initialize(LevelSession session, BoardRaycaster raycaster,
+                               BoardLayout layout, GeckoViewManager viewManager)
         {
             _session = session;
             _raycaster = raycaster;
             _layout = layout;
+            _viewManager = viewManager;
             _draggedGecko = null;
         }
 
@@ -71,9 +73,14 @@ namespace GeckoOut.Presentation.Input
 
             if (pointer.press.wasReleasedThisFrame)
             {
-                if (_draggedGecko != null && GeckoReleased != null)
+                if (_draggedGecko != null)
                 {
-                    GeckoReleased();
+                    if (GeckoReleased != null)
+                    {
+                        GeckoReleased();
+                    }
+
+                    _viewManager.ClearDragRender(_draggedGecko);
                 }
 
                 _draggedGecko = null;
@@ -109,7 +116,6 @@ namespace GeckoOut.Presentation.Input
                     GeckoGrabbed(_draggedGecko, _draggedEnd);
                 }
             }
-            
         }
 
         private void ConsiderEnd(GeckoBody gecko, GeckoEnd end, Vector3 worldPoint,
@@ -128,23 +134,72 @@ namespace GeckoOut.Presentation.Input
 
         private void ContinueDrag(Vector2 screenPosition)
         {
-            if (!_raycaster.TryGetCellUnderScreenPoint(screenPosition, out GridPosition cell))
+            if (!_raycaster.TryGetWorldPoint(screenPosition, out Vector3 fingerWorld))
             {
                 return;
             }
 
-            if (cell.Equals(_draggedGecko.GetEnd(_draggedEnd)))
+            GridPosition fingerCell = _layout.WorldToCell(fingerWorld);
+            GridPosition headCell = _draggedGecko.GetEnd(_draggedEnd);
+
+            if (!fingerCell.Equals(headCell))
             {
-                return;
+                bool moved = _session.TryDragTo(_draggedGecko, _draggedEnd, fingerCell);
+
+                if (!moved)
+                {
+                    RaiseBlockedFeedback();
+                }
             }
 
-            bool moved = _session.TryDragTo(_draggedGecko, _draggedEnd, cell);
-
-            if (!moved)
-            {
-                RaiseBlockedFeedback();
-            }
+            UpdateDragRender(fingerWorld);
         }
+
+        private void UpdateDragRender(Vector3 fingerWorld)
+        {
+            GridPosition headCell = _draggedGecko.GetEnd(_draggedEnd);
+            Vector3 offset = fingerWorld - _layout.CellToWorld(headCell);
+
+            GridPosition dir;
+            float proj;
+
+            if (Mathf.Abs(offset.x) >= Mathf.Abs(offset.z))
+            {
+                dir = new GridPosition(offset.x >= 0f ? 1 : -1, 0);
+                proj = Mathf.Abs(offset.x) / _layout.CellSize;
+            }
+            else
+            {
+                dir = new GridPosition(0, offset.z >= 0f ? 1 : -1);
+                proj = Mathf.Abs(offset.z) / _layout.CellSize;
+            }
+
+            GridPosition candidate = headCell.Add(dir);
+
+            bool hasLead = IsNeckCell(candidate)
+                || _session.CanStep(_draggedGecko, _draggedEnd, candidate);
+
+            float progress = hasLead ? Mathf.Clamp(proj, 0f, 0.5f) : 0f;
+
+            _viewManager.SetDragRender(_draggedGecko, _draggedEnd, candidate, hasLead, progress);
+        }
+
+        private bool IsNeckCell(GridPosition cell)
+        {
+            var cells = _draggedGecko.Cells;
+
+            if (cells.Count < 2)
+            {
+                return false;
+            }
+
+            GridPosition neck = _draggedEnd == GeckoEnd.Head
+                ? cells[1]
+                : cells[cells.Count - 2];
+
+            return cell.Equals(neck);
+        }
+
         private void RaiseBlockedFeedback()
         {
             if (Time.time - _lastBlockedFeedbackTime < BlockedFeedbackCooldown)

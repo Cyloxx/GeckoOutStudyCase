@@ -91,6 +91,31 @@ namespace GeckoOut.Presentation.Gecko
                 _grabbedView = null;
             }
         }
+        
+        public void SetDragRender(GeckoBody gecko, GeckoEnd end,
+            GridPosition leadCell, bool hasLead, float progress)
+        {
+            for (int i = 0; i < _views.Count; i++)
+            {
+                if (_views[i].Body == gecko)
+                {
+                    _views[i].SetDragRender(end, leadCell, hasLead, progress);
+                    return;
+                }
+            }
+        }
+
+        public void ClearDragRender(GeckoBody gecko)
+        {
+            for (int i = 0; i < _views.Count; i++)
+            {
+                if (_views[i].Body == gecko)
+                {
+                    _views[i].ClearDragRender();
+                    return;
+                }
+            }
+        }
 
         private void Clear()
         {
