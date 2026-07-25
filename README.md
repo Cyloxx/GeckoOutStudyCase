@@ -110,6 +110,10 @@ Window → General → Test Runner → **EditMode** → Run All. 85 tests cover 
 board, gecko body mechanics, move validation, pathfinding, command undo,
 session flow (win/lose/timer) and the level data pipeline.
 
+## Third-party
+
+- **DOTween** (Demigiant) — tweening, Presentation/UI only; the Core stays free of it.
+
 ## Level format
 
 ```json
@@ -125,6 +129,3 @@ session flow (win/lose/timer) and the level data pipeline.
   ]
 }
 
-## Third-party
-
-- **DOTween** (Demigiant) — tweening, Presentation/UI only; the Core stays free of it.
