@@ -1,17 +1,18 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using GeckoOut.Core.Board;
 using GeckoOut.Core.Gecko;
 using GeckoOut.Presentation.Board;
 using GeckoOut.Presentation.Common;
 using UnityEngine;
-using DG.Tweening;
 
 namespace GeckoOut.Presentation.Gecko
 {
     /// <summary>
-    /// Visual of one gecko: a chain of pooled segments that follow the
-    /// body's cells. Reads the body every frame and eases the segments
-    /// toward their target cells, so model jumps become smooth motion.
+    /// Visual of one gecko: a chain of pooled segments that follow the body's
+    /// cells. Every model step is queued as a snapshot and animated in order,
+    /// so the body always walks through each cell it passes through — there is
+    /// one movement path, whether the step came from a short drag or a long one.
     /// </summary>
     public class GeckoView
     {
@@ -32,14 +33,6 @@ namespace GeckoOut.Presentation.Gecko
         private readonly Queue<List<GridPosition>> _stepSnapshots
             = new Queue<List<GridPosition>>();
         private readonly List<Vector3> _previousPositions = new List<Vector3>();
-        private readonly List<Vector3> _spine = new List<Vector3>();
-        
-       
-       private bool _dragActive;
-       private GeckoEnd _dragEnd;
-       private GridPosition _dragLeadCell;
-       private bool _dragHasLead;
-       private float _dragProgress;        
 
         private Color _baseColor;
         private Color _bodyColor;
@@ -73,66 +66,31 @@ namespace GeckoOut.Presentation.Gecko
                 segment.transform.position = _layout.CellToWorld(body.Cells[i]);
                 segment.transform.localScale = Vector3.one * (isHead ? HeadScale : BodyScale);
                 segment.SetColor(isHead ? _baseColor : _bodyColor);
+                segment.SetStretch(Vector3.forward, 0f);
 
                 _segments.Add(segment);
-                segment.SetStretch(Vector3.forward, 0f);
                 _previousPositions.Add(segment.transform.position);
             }
         }
 
         /// <summary>
-        /// Records where every cell of the body is right now. Called once
-        /// per model step, so multi-step drags become an ordered trail of
-        /// waypoints instead of one big diagonal jump.
+        /// Records where every cell of the body is right now. Called once per
+        /// model step, so a multi-cell move becomes an ordered queue of
+        /// waypoints instead of one jump to the destination.
         /// </summary>
         public void CaptureStepSnapshot()
         {
-            if (_dragActive)
-            {
-                return;
-            }
-
             _stepSnapshots.Enqueue(new List<GridPosition>(_body.Cells));
         }
-        
-        public void SetDragRender(GeckoEnd leadingEnd, GridPosition leadCell,
-            bool hasLead, float progress)
-        {
-            // Queued steps are still animating: let them finish before the
-            // finger takes over the shape, otherwise the body would pop.
-            if (_stepSnapshots.Count > 0)
-            {
-                _dragActive = false;
-                return;
-            }
 
-            _dragActive = true;
-            _dragEnd = leadingEnd;
-            _dragLeadCell = leadCell;
-            _dragHasLead = hasLead;
-            _dragProgress = progress;
-        }
-
-        public void ClearDragRender()
-        {
-            _dragActive = false;
-            _spine.Clear();
-        }
-        
         /// <summary>
-        /// Eases every segment toward its target cell. Uses exponential
-        /// smoothing so motion starts quickly and decelerates into a soft
-        /// stop; the rate scales with how many steps are still queued, so
-        /// fast drags catch up to the finger while single steps stay gentle.
+        /// Eases every segment toward its target cell. Targets come from the
+        /// oldest pending snapshot, so each cell of the path is visited in
+        /// order; the smoothing rate scales with how many steps are still
+        /// queued, so long moves catch up without skipping cells.
         /// </summary>
         public void Tick(float deltaSeconds)
         {
-            if (_dragActive)
-            {
-                TickDrag(deltaSeconds);
-                return;
-            }
-            
             IReadOnlyList<GridPosition> targetCells;
 
             if (_stepSnapshots.Count > 0)
@@ -178,90 +136,7 @@ namespace GeckoOut.Presentation.Gecko
                 _stepSnapshots.Dequeue();
             }
         }
-        
-        private void TickDrag(float deltaSeconds)
-        {
-            int n = _segments.Count;
 
-            if (n == 0)
-            {
-                return;
-            }
-
-            BuildSpine();
-
-            float cellSize = _layout.CellSize;
-
-            for (int k = 0; k < n; k++)
-            {
-                int i = _dragEnd == GeckoEnd.Head ? k : (n - 1 - k);
-                Vector3 position = SampleSpine(k * cellSize);
-
-                _segments[i].transform.position = position;
-                _previousPositions[i] = position;
-                _segments[i].SetStretch(Vector3.forward, 0f);
-            }
-        }
-
-        /// <summary>
-        /// Rebuilds the body's spine from the committed cells, extended at the
-        /// leading end by the current sub-cell lead. Recomputed every frame, so
-        /// no state can drift or run short: the shape is exact and every
-        /// segment moves continuously with the finger.
-        /// </summary>
-        private void BuildSpine()
-        {
-            _spine.Clear();
-
-            if (_dragHasLead)
-            {
-                Vector3 leadFrom = _layout.CellToWorld(OrderedCell(0));
-                Vector3 leadTo = _layout.CellToWorld(_dragLeadCell);
-                _spine.Add(Vector3.Lerp(leadFrom, leadTo, _dragProgress));
-            }
-
-            int cellCount = _body.Cells.Count;
-
-            for (int k = 0; k < cellCount; k++)
-            {
-                _spine.Add(_layout.CellToWorld(OrderedCell(k)));
-            }
-        }
-
-        private Vector3 SampleSpine(float distance)
-        {
-            if (distance <= 0f)
-            {
-                return _spine[0];
-            }
-
-            float travelled = 0f;
-
-            for (int i = 0; i < _spine.Count - 1; i++)
-            {
-                float length = Vector3.Distance(_spine[i], _spine[i + 1]);
-
-                if (travelled + length >= distance)
-                {
-                    float t = (distance - travelled) / Mathf.Max(length, 0.0001f);
-                    return Vector3.Lerp(_spine[i], _spine[i + 1], t);
-                }
-
-                travelled += length;
-            }
-
-            return _spine[_spine.Count - 1];
-        }        
-
-
-        private GridPosition OrderedCell(int k)
-        {
-            return _dragEnd == GeckoEnd.Head
-                ? _body.Cells[k]
-                : _body.Cells[_body.Cells.Count - 1 - k];
-        }
-        
-        
         private void ApplyStretch(int segmentIndex, Vector3 frameDelta, float deltaSeconds)
         {
             if (deltaSeconds <= 0f)
@@ -294,10 +169,11 @@ namespace GeckoOut.Presentation.Gecko
         {
             _segments.Clear();
         }
-        
+
         public void SetGrabbed(GeckoEnd end)
         {
             int index = EndSegmentIndex(end);
+
             if (index < 0)
             {
                 return;
@@ -312,10 +188,11 @@ namespace GeckoOut.Presentation.Gecko
 
             _segments[index].SetColor(Color.Lerp(EndBaseColor(end), Color.white, 0.35f));
         }
-        
+
         public void PlayBlockedBump(GeckoEnd end)
         {
             int index = EndSegmentIndex(end);
+
             if (index < 0)
             {
                 return;
@@ -339,6 +216,7 @@ namespace GeckoOut.Presentation.Gecko
         public void ClearGrab(GeckoEnd end)
         {
             int index = EndSegmentIndex(end);
+
             if (index < 0)
             {
                 return;

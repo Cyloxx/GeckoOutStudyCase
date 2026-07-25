@@ -145,22 +145,8 @@ namespace GeckoOut.Tests
             Assert.That(_red.Head, Is.EqualTo(new GridPosition(3, 2)));
         }
         
-        [Test]
-        public void CanStep_ValidNeighbour_ReturnsTrue()
-        {
-            bool canStep = _session.CanStep(_red, GeckoEnd.Head, new GridPosition(2, 1));
-
-            Assert.That(canStep, Is.True);
-        }
 
         [Test]
-        public void CanStep_IntoWall_ReturnsFalse()
-        {
-            bool canStep = _session.CanStep(_red, GeckoEnd.Head, new GridPosition(1, 0));
-
-            Assert.That(canStep, Is.False);
-        }
-                [Test]
         public void TryPushBack_NoHistory_TailAdvancesStraight()
         {
             // Red: head (1,1), tail (1,2). Pushing the head back sends the

@@ -3,17 +3,17 @@ using GeckoOut.Core.Board;
 using GeckoOut.Core.Gecko;
 using GeckoOut.Core.Session;
 using GeckoOut.Presentation.Board;
-using GeckoOut.Presentation.Gecko;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace GeckoOut.Presentation.Input
 {
     /// <summary>
-    /// Translates pointer input into session intents. The model still commits
-    /// discrete steps toward the finger's nearest cell; this class additionally
-    /// feeds the view a sub-cell "lead" (which neighbour, how far) so the
-    /// grabbed gecko can follow the finger continuously between cells.
+    /// Translates pointer input into session intents: grab an end, then keep
+    /// asking the session to bring that end to the cell under the finger.
+    /// The session walks the path one legal step at a time and the view
+    /// animates every step, so all movement uses the same single path.
+    /// Contains no game rules.
     /// </summary>
     public class DragInputController : MonoBehaviour
     {
@@ -26,21 +26,18 @@ namespace GeckoOut.Presentation.Input
         private LevelSession _session;
         private BoardRaycaster _raycaster;
         private BoardLayout _layout;
-        private GeckoViewManager _viewManager;
 
         private GeckoBody _draggedGecko;
         private GeckoEnd _draggedEnd;
         private float _lastBlockedFeedbackTime;
         private float _grabRadiusInCells = 0.75f;
-        private const float FollowRangeCells = 1.2f;
 
         public void Initialize(LevelSession session, BoardRaycaster raycaster,
-                               BoardLayout layout, GeckoViewManager viewManager)
+                               BoardLayout layout)
         {
             _session = session;
             _raycaster = raycaster;
             _layout = layout;
-            _viewManager = viewManager;
             _draggedGecko = null;
         }
 
@@ -74,14 +71,9 @@ namespace GeckoOut.Presentation.Input
 
             if (pointer.press.wasReleasedThisFrame)
             {
-                if (_draggedGecko != null)
+                if (_draggedGecko != null && GeckoReleased != null)
                 {
-                    if (GeckoReleased != null)
-                    {
-                        GeckoReleased();
-                    }
-
-                    _viewManager.ClearDragRender(_draggedGecko);
+                    GeckoReleased();
                 }
 
                 _draggedGecko = null;
@@ -101,8 +93,10 @@ namespace GeckoOut.Presentation.Input
 
             foreach (GeckoBody gecko in _session.ActiveGeckos)
             {
-                ConsiderEnd(gecko, GeckoEnd.Head, worldPoint, ref bestDistanceSqr, ref bestGecko, ref bestEnd);
-                ConsiderEnd(gecko, GeckoEnd.Tail, worldPoint, ref bestDistanceSqr, ref bestGecko, ref bestEnd);
+                ConsiderEnd(gecko, GeckoEnd.Head, worldPoint,
+                    ref bestDistanceSqr, ref bestGecko, ref bestEnd);
+                ConsiderEnd(gecko, GeckoEnd.Tail, worldPoint,
+                    ref bestDistanceSqr, ref bestGecko, ref bestEnd);
             }
 
             float grabRadiusWorld = _grabRadiusInCells * _layout.CellSize;
@@ -143,109 +137,27 @@ namespace GeckoOut.Presentation.Input
             GridPosition fingerCell = _layout.WorldToCell(fingerWorld);
             GridPosition endCell = _draggedGecko.GetEnd(_draggedEnd);
 
-            if (!fingerCell.Equals(endCell))
+            if (fingerCell.Equals(endCell))
             {
-                bool moved;
-
-                if (_draggedGecko.Occupies(fingerCell))
-                {
-                    // Finger pushed into the body: the gecko slides the other way.
-                    moved = _session.TryPushBack(_draggedGecko, _draggedEnd);
-                }
-                else
-                {
-                    moved = _session.TryDragTo(_draggedGecko, _draggedEnd, fingerCell);
-                }
-
-                if (!moved)
-                {
-                    RaiseBlockedFeedback();
-                }
-            }
-
-            // Follow the finger sub-cell only while it is close. When it runs
-            // ahead, hand the shape back to the step animation so the gecko
-            // walks through every cell instead of appearing at the target.
-            if (IsFingerWithinFollowRange(fingerWorld))
-            {
-                UpdateDragRender(fingerWorld);
-            }
-            else
-            {
-                _viewManager.ClearDragRender(_draggedGecko);
-            }
-        }
-
-        private bool IsFingerWithinFollowRange(Vector3 fingerWorld)
-        {
-            Vector3 offset = fingerWorld
-                             - _layout.CellToWorld(_draggedGecko.GetEnd(_draggedEnd));
-
-            float cells = Mathf.Max(Mathf.Abs(offset.x), Mathf.Abs(offset.z))
-                          / _layout.CellSize;
-
-            return cells <= FollowRangeCells;
-        }
-
-        private void UpdateDragRender(Vector3 fingerWorld)
-        {
-            GridPosition endCell = _draggedGecko.GetEnd(_draggedEnd);
-            Vector3 offset = fingerWorld - _layout.CellToWorld(endCell);
-
-            float absX = Mathf.Abs(offset.x);
-            float absZ = Mathf.Abs(offset.z);
-            bool xDominant = absX >= absZ;
-
-            GridPosition primaryDir = xDominant
-                ? new GridPosition(offset.x >= 0f ? 1 : -1, 0)
-                : new GridPosition(0, offset.z >= 0f ? 1 : -1);
-
-            GridPosition secondaryDir = xDominant
-                ? new GridPosition(0, offset.z >= 0f ? 1 : -1)
-                : new GridPosition(offset.x >= 0f ? 1 : -1, 0);
-
-            float primaryProj = (xDominant ? absX : absZ) / _layout.CellSize;
-            float secondaryProj = (xDominant ? absZ : absX) / _layout.CellSize;
-
-            GridPosition primaryCell = endCell.Add(primaryDir);
-
-            // Leaning into the body is a push-back: the opposite end leads.
-            if (_draggedGecko.Occupies(primaryCell))
-            {
-                GeckoEnd leadingEnd = GeckoBody.Opposite(_draggedEnd);
-
-                if (_session.TryGetPushBackTarget(_draggedGecko, _draggedEnd,
-                        out GridPosition pushTarget))
-                {
-                    _viewManager.SetDragRender(_draggedGecko, leadingEnd, pushTarget,
-                        true, Mathf.Clamp(primaryProj, 0f, 0.5f));
-                }
-                else
-                {
-                    _viewManager.SetDragRender(_draggedGecko, leadingEnd, primaryCell, false, 0f);
-                }
-
                 return;
             }
 
-            GridPosition candidate = primaryCell;
-            float proj = primaryProj;
-            bool hasLead = _session.CanStep(_draggedGecko, _draggedEnd, candidate);
+            bool moved;
 
-            if (!hasLead && secondaryProj > 0.05f)
+            if (_draggedGecko.Occupies(fingerCell))
             {
-                GridPosition alternative = endCell.Add(secondaryDir);
-
-                if (_session.CanStep(_draggedGecko, _draggedEnd, alternative))
-                {
-                    candidate = alternative;
-                    proj = secondaryProj;
-                    hasLead = true;
-                }
+                // Finger pushed into the body: the gecko slides the other way.
+                moved = _session.TryPushBack(_draggedGecko, _draggedEnd);
+            }
+            else
+            {
+                moved = _session.TryDragTo(_draggedGecko, _draggedEnd, fingerCell);
             }
 
-            _viewManager.SetDragRender(_draggedGecko, _draggedEnd, candidate, hasLead,
-                hasLead ? Mathf.Clamp(proj, 0f, 0.5f) : 0f);
+            if (!moved)
+            {
+                RaiseBlockedFeedback();
+            }
         }
 
         private void RaiseBlockedFeedback()

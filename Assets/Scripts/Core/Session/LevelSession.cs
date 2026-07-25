@@ -121,17 +121,6 @@ namespace GeckoOut.Core.Session
             return _validator.CanStep(gecko, movingEnd, target, _activeGeckos);
         }
         
-                /// <summary>
-        /// Read-only: which cell would the opposite end advance into if this
-        /// end were pushed back into the body? Prefers retracing the last
-        /// recorded step, then a straight continuation, then a curl into any
-        /// free neighbour. Commits nothing.
-        /// </summary>
-        public bool TryGetPushBackTarget(GeckoBody gecko, GeckoEnd pushedEnd,
-                                         out GridPosition target)
-        {
-            return TryResolvePushBack(gecko, pushedEnd, out target, out bool isUndo);
-        }
 
         /// <summary>
         /// Pushing one end into the body slides the gecko the other way:
