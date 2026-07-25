@@ -3,6 +3,8 @@ using GeckoOut.Core.Board;
 using GeckoOut.Presentation.Common;
 using UnityEditor;
 using UnityEngine;
+using System.IO;
+using GeckoOut.Data;
 
 namespace GeckoOut.Editor
 {
@@ -62,6 +64,8 @@ namespace GeckoOut.Editor
             DrawToolbar();
             EditorGUILayout.Space();
             DrawGrid();
+            EditorGUILayout.Space();
+            DrawValidationAndExport();
             EditorGUILayout.Space();
             DrawHelp();
         }
@@ -330,6 +334,86 @@ namespace GeckoOut.Editor
                 "Wall/Exit/Erase: click a cell. Gecko: click cells in order (head "
                 + "first) to build a chain; 'New Gecko' starts another. Export comes next.",
                 MessageType.Info);
+        }
+                private void DrawValidationAndExport()
+        {
+            LevelDefinition definition = BuildDefinition();
+            bool valid = new LevelValidator().IsValid(definition, out List<string> errors);
+
+            if (valid)
+            {
+                EditorGUILayout.HelpBox("Level is valid and ready to export.", MessageType.Info);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(string.Join("\n", errors), MessageType.Error);
+            }
+
+            EditorGUI.BeginDisabledGroup(!valid);
+
+            if (GUILayout.Button("Export JSON", GUILayout.Height(30f)))
+            {
+                Export(definition);
+            }
+
+            EditorGUI.EndDisabledGroup();
+        }
+
+        private LevelDefinition BuildDefinition()
+        {
+            LevelDefinition definition = new LevelDefinition();
+            definition.levelId = _levelId;
+            definition.timeLimitSeconds = _timeLimitSeconds;
+            definition.gridWidth = _width;
+            definition.gridHeight = _height;
+
+            foreach (Vector2Int wall in _walls)
+            {
+                definition.walls.Add(new CellDefinition { x = wall.x, y = wall.y });
+            }
+
+            foreach (KeyValuePair<Vector2Int, ColorId> exit in _exits)
+            {
+                definition.exits.Add(new ExitDefinition
+                {
+                    x = exit.Key.x,
+                    y = exit.Key.y,
+                    color = exit.Value.ToString()
+                });
+            }
+
+            foreach (GeckoDraft gecko in _geckos)
+            {
+                GeckoDefinition geckoDefinition = new GeckoDefinition
+                {
+                    color = gecko.Color.ToString()
+                };
+
+                foreach (Vector2Int cell in gecko.Cells)
+                {
+                    geckoDefinition.cells.Add(new CellDefinition { x = cell.x, y = cell.y });
+                }
+
+                definition.geckos.Add(geckoDefinition);
+            }
+
+            return definition;
+        }
+
+        private void Export(LevelDefinition definition)
+        {
+            string defaultName = "Level_" + _levelId.ToString("00") + ".json";
+            string path = EditorUtility.SaveFilePanelInProject(
+                "Export Level", defaultName, "json", "Choose where to save the level");
+
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            File.WriteAllText(path, JsonUtility.ToJson(definition, true));
+            AssetDatabase.Refresh();
+            Debug.Log("[LevelEditor] Exported " + path);
         }
     }
 }
