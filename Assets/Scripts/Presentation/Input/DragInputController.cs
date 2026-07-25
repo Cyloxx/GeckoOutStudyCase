@@ -32,6 +32,7 @@ namespace GeckoOut.Presentation.Input
         private GeckoEnd _draggedEnd;
         private float _lastBlockedFeedbackTime;
         private float _grabRadiusInCells = 0.75f;
+        private const float FollowRangeCells = 1.2f;
 
         public void Initialize(LevelSession session, BoardRaycaster raycaster,
                                BoardLayout layout, GeckoViewManager viewManager)
@@ -162,10 +163,31 @@ namespace GeckoOut.Presentation.Input
                 }
             }
 
-            UpdateDragRender(fingerWorld);
+            // Follow the finger sub-cell only while it is close. When it runs
+            // ahead, hand the shape back to the step animation so the gecko
+            // walks through every cell instead of appearing at the target.
+            if (IsFingerWithinFollowRange(fingerWorld))
+            {
+                UpdateDragRender(fingerWorld);
+            }
+            else
+            {
+                _viewManager.ClearDragRender(_draggedGecko);
+            }
         }
 
-                private void UpdateDragRender(Vector3 fingerWorld)
+        private bool IsFingerWithinFollowRange(Vector3 fingerWorld)
+        {
+            Vector3 offset = fingerWorld
+                             - _layout.CellToWorld(_draggedGecko.GetEnd(_draggedEnd));
+
+            float cells = Mathf.Max(Mathf.Abs(offset.x), Mathf.Abs(offset.z))
+                          / _layout.CellSize;
+
+            return cells <= FollowRangeCells;
+        }
+
+        private void UpdateDragRender(Vector3 fingerWorld)
         {
             GridPosition endCell = _draggedGecko.GetEnd(_draggedEnd);
             Vector3 offset = fingerWorld - _layout.CellToWorld(endCell);

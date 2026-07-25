@@ -98,6 +98,14 @@ namespace GeckoOut.Presentation.Gecko
         public void SetDragRender(GeckoEnd leadingEnd, GridPosition leadCell,
             bool hasLead, float progress)
         {
+            // Queued steps are still animating: let them finish before the
+            // finger takes over the shape, otherwise the body would pop.
+            if (_stepSnapshots.Count > 0)
+            {
+                _dragActive = false;
+                return;
+            }
+
             _dragActive = true;
             _dragEnd = leadingEnd;
             _dragLeadCell = leadCell;
@@ -109,7 +117,6 @@ namespace GeckoOut.Presentation.Gecko
         {
             _dragActive = false;
             _spine.Clear();
-            _stepSnapshots.Clear();
         }
         
         /// <summary>
