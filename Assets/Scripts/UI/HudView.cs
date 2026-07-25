@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using GeckoOut.Core.Session;
 using TMPro;
@@ -20,6 +21,8 @@ namespace GeckoOut.UI
         private LevelSession _session;
         private int _lastShownSecond = -1;
         private bool _isUrgent;
+        
+        public event Action UrgentSecondTicked;
 
         public void Bind(LevelSession session, int levelNumber)
         {
@@ -67,6 +70,11 @@ namespace GeckoOut.UI
             if (shouldBeUrgent)
             {
                 PulseTimer();
+
+                if (UrgentSecondTicked != null)
+                {
+                    UrgentSecondTicked();
+                }
             }
         }
 

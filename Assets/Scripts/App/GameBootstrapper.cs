@@ -12,6 +12,7 @@ using GeckoOut.Presentation.Input;
 using GeckoOut.UI;
 using UnityEngine;
 using GeckoOut.Core.Gecko;
+using GeckoOut.Presentation.Audio;
 
 namespace GeckoOut.App
 {
@@ -32,6 +33,7 @@ namespace GeckoOut.App
         [SerializeField] private GeckoViewManager _geckoViewManager;
         [SerializeField] private DragInputController _dragInputController;
         [SerializeField] private Camera _mainCamera;
+        [SerializeField] private SoundPlayer _soundPlayer;
 
         [Header("UI")]
         [SerializeField] private HudView _hudView;
@@ -60,7 +62,8 @@ namespace GeckoOut.App
                 || _mainCamera == null
                 || _hudView == null
                 || _winPanel == null
-                || _losePanel == null;
+                || _losePanel == null
+                || _soundPlayer == null;
 
             if (referencesMissing)
             {
@@ -78,7 +81,9 @@ namespace GeckoOut.App
             LoadLevel(_currentLevelIndex);
             _dragInputController.GeckoGrabbed += HandleGeckoGrabbed;
             _dragInputController.GeckoReleased += HandleGeckoReleased;
-            
+            _dragInputController.GeckoGrabbed += HandleGrabSound;
+            _hudView.UrgentSecondTicked += HandleTimerTickSound;
+            _dragInputController.MoveBlocked += HandleMoveBlocked;
         }
 
         private void Update()
@@ -87,7 +92,6 @@ namespace GeckoOut.App
             {
                 _session.Tick(Time.deltaTime);
             }
-            _dragInputController.MoveBlocked += HandleMoveBlocked;
         }
 
         private void OnDestroy()
@@ -100,6 +104,8 @@ namespace GeckoOut.App
             _dragInputController.GeckoGrabbed -= HandleGeckoGrabbed;
             _dragInputController.GeckoReleased -= HandleGeckoReleased;
             _dragInputController.MoveBlocked -= HandleMoveBlocked;
+            _dragInputController.GeckoGrabbed -= HandleGrabSound;
+            _hudView.UrgentSecondTicked -= HandleTimerTickSound;
         }
         
         private void HandleGeckoGrabbed(GeckoBody gecko, GeckoEnd end)
@@ -114,6 +120,17 @@ namespace GeckoOut.App
         private void HandleMoveBlocked(GeckoBody gecko, GeckoEnd end)
         {
             _geckoViewManager.PlayBlocked(gecko, end);
+            _soundPlayer.PlayBlocked();
+        }
+        
+        private void HandleGrabSound(GeckoBody gecko, GeckoEnd end)
+        {
+            _soundPlayer.PlayGrab();
+        }
+
+        private void HandleTimerTickSound()
+        {
+            _soundPlayer.PlayTimerTick();
         }
 
         private void LoadLevel(int levelIndex)
@@ -153,6 +170,7 @@ namespace GeckoOut.App
             _session.LevelWon += HandleLevelWon;
             _session.LevelLost += HandleLevelLost;
             _session.GeckoExited += HandleGeckoExited;
+            _session.GeckoStepped += HandleGeckoStepped;
 
             _boardViewBuilder.Build(level.Board);
             _cameraFitter.Fit(level.Board.Width, level.Board.Height,
@@ -175,10 +193,18 @@ namespace GeckoOut.App
             _session.LevelWon -= HandleLevelWon;
             _session.LevelLost -= HandleLevelLost;
             _session.GeckoExited -= HandleGeckoExited;
+            _session.GeckoStepped -= HandleGeckoStepped;
+        }
+        
+        private void HandleGeckoStepped(GeckoBody gecko)
+        {
+            _soundPlayer.PlayStep();
         }
 
         private void HandleLevelWon()
         {
+            _soundPlayer.PlayWin();
+            
             if (_winParticlePrefab)
             {
                 ParticleSystem confetti = Instantiate(_winParticlePrefab,
@@ -194,6 +220,7 @@ namespace GeckoOut.App
         private void HandleGeckoExited(GeckoBody gecko, ExitPoint exit)
         {
             _boardViewBuilder.PlayExitFeedback(exit.Position);
+            _soundPlayer.PlayExit();
         }
 
         private IEnumerator ShowWinPanelAfterDelay()
@@ -205,6 +232,7 @@ namespace GeckoOut.App
 
         private void HandleLevelLost()
         {
+            _soundPlayer.PlayLose();
             _losePanel.Show();
         }
 

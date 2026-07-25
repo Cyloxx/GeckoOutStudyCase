@@ -271,6 +271,159 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &234966775
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 234966778}
+  - component: {fileID: 234966777}
+  - component: {fileID: 234966776}
+  m_Layer: 0
+  m_Name: Sounds
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &234966776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234966775}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7b77b40a10e93d42ad27579fc10ccc2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GeckoOut.Presentation::GeckoOut.Presentation.Audio.SoundPlayer
+  _source: {fileID: 234966777}
+  _grabClip: {fileID: 8300000, guid: d31a3ec1eda42484ab6b2ed284ee3807, type: 3}
+  _stepClip: {fileID: 8300000, guid: d10785772ad2c1c498c3c29435b9d516, type: 3}
+  _blockedClip: {fileID: 8300000, guid: dbbb754745ca25d4cbee179d1832b813, type: 3}
+  _exitClip: {fileID: 8300000, guid: 18d7e017b4e72974a880e91eef029ea8, type: 3}
+  _winClip: {fileID: 8300000, guid: 3337ee9c55c40d440a10d0e620facca3, type: 3}
+  _loseClip: {fileID: 8300000, guid: ce0b13faeef574f4fb6a7da8ff1d1555, type: 3}
+  _timerTickClip: {fileID: 8300000, guid: c21467b6bab2a4f499f2c13379745f8c, type: 3}
+  _stepMinInterval: 0.05
+  _stepVolume: 0.5
+  _stepPitchRange: {x: 0.92, y: 1.08}
+--- !u!82 &234966777
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234966775}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &234966778
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234966775}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &250784199
 GameObject:
   m_ObjectHideFlags: 0
@@ -325,6 +478,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: GeckoOut.UI::GeckoOut.UI.HudView
   _levelText: {fileID: 1583641848}
   _timerText: {fileID: 760648923}
+  _urgentThresholdSeconds: 5
+  _normalColor: {r: 1, g: 1, b: 1, a: 1}
+  _urgentColor: {r: 0.95, g: 0.25, b: 0.2, a: 1}
 --- !u!114 &250784202
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -434,6 +590,7 @@ MonoBehaviour:
   _geckoViewManager: {fileID: 265790231}
   _dragInputController: {fileID: 601166356}
   _mainCamera: {fileID: 987105847}
+  _soundPlayer: {fileID: 234966776}
   _hudView: {fileID: 250784201}
   _winPanel: {fileID: 1514250801}
   _losePanel: {fileID: 379306713}
@@ -2223,3 +2380,4 @@ SceneRoots:
   - {fileID: 601166357}
   - {fileID: 621058229}
   - {fileID: 2084185825}
+  - {fileID: 234966778}
