@@ -6,8 +6,10 @@ built as a study case with one goal: **sustainable, testable, SOLID architecture
 > Visuals are intentionally minimal — the deliverable is the code.
 
 - Unity **6000.3.8f1**, URP (mobile), portrait
-- **85 EditMode unit tests** covering the entire game logic
-- 10 data-driven levels, one gameplay scene
+- **85 EditMode unit tests** covering the engine-independent core
+- 11 data-driven levels + an in-editor visual level designer
+- Game feel pass: responsive drag, squash & stretch, screen shake, juice, audio
+
 
 ## How to play
 
@@ -49,6 +51,32 @@ Five assemblies with compiler-enforced dependency direction (arrows = "reference
 | Factory | `LevelFactory` | Single gate where untrusted DTO data becomes guarded domain objects |
 | Object pool | `ObjectPool<T>` | One generic implementation; used where churn exists (gecko segments) |
 | Facade / intent API | `LevelSession` | Input produces intents; all rules resolve inside the tested core |
+
+## Game feel & controls
+
+Feel and responsiveness live entirely in the Presentation layer — the tested
+core is untouched, and juice hangs off the same session events.
+
+- **Responsive drag** — the grabbed end tracks the finger via exponential
+  smoothing with an adaptive catch-up rate, so fast drags keep up while
+  careful moves stay soft. Grab detection is radius-based (fat-finger tolerant).
+- **Feedback everywhere** — grab pop, blocked-move bump, trail-following sink,
+  exit pulse + particles, win confetti, timer pressure in the final seconds,
+  and motion-driven squash & stretch.
+- **Audio** — an event-driven `SoundPlayer` (no singleton, no global access;
+  the composition root routes events into it). Step sounds are throttled and
+  pitch-varied.
+- **DOTween** is used for discrete animations; continuous follow-motion uses
+  frame-rate-independent smoothing. Tweens and per-frame writes are kept on
+  separate transforms (root vs. visual child) so they never fight.
+
+## Level editor
+
+`Tools ▸ GeckoOut ▸ Level Editor` opens a visual designer: paint walls,
+colored exits and multi-cell geckos on a grid, then export the same JSON the
+game loads at runtime. It reuses the game's own `LevelValidator` live — an
+invalid level (broken chain, missing exit, unsolvable) cannot be exported.
+The editor only draws; every rule comes from the existing Data layer.
 
 ### Key decisions & trade-offs
 
@@ -96,3 +124,7 @@ session flow (win/lose/timer) and the level data pipeline.
     { "color": "Red", "cells": [ { "x": 1, "y": 2 }, { "x": 0, "y": 2 } ] }
   ]
 }
+
+## Third-party
+
+- **DOTween** (Demigiant) — tweening, Presentation/UI only; the Core stays free of it.
