@@ -16,23 +16,20 @@ namespace GeckoOut.Presentation.Gecko
     /// </summary>
     public class GeckoView
     {
-        private const float HeadScale = 0.85f;
-        private const float BodyScale = 0.68f;
         private const float CatchUpPerPendingStep = 0.9f;
         private const float GrabPopDuration = 0.18f;
         private const float GrabReturnDuration = 0.12f;
-        private const float GrabScaleMultiplier = 1.25f;
-        private const float MaxStretch = 0.35f;
-        private const float StretchSpeedReference = 12f;
+        private const float GrabScaleMultiplier = 1.1f;
 
         private readonly GeckoBody _body;
         private readonly BoardLayout _layout;
-        private readonly ObjectPool<GeckoSegmentView> _segmentPool;
+        private readonly ObjectPool<GeckoSegmentView> _headPool;
+        private readonly ObjectPool<GeckoSegmentView> _bodyPool;
+        private GeckoSegmentView _headSegment;
         private readonly List<GeckoSegmentView> _segments = new List<GeckoSegmentView>();
         private readonly float _moveSpeed;
         private readonly Queue<List<GridPosition>> _stepSnapshots
             = new Queue<List<GridPosition>>();
-        private readonly List<Vector3> _previousPositions = new List<Vector3>();
 
         private Color _baseColor;
         private Color _bodyColor;
@@ -48,11 +45,13 @@ namespace GeckoOut.Presentation.Gecko
         }
 
         public GeckoView(GeckoBody body, BoardLayout layout,
-                         ObjectPool<GeckoSegmentView> segmentPool, float moveSpeed)
+            ObjectPool<GeckoSegmentView> headPool,
+            ObjectPool<GeckoSegmentView> bodyPool, float moveSpeed)
         {
             _body = body;
             _layout = layout;
-            _segmentPool = segmentPool;
+            _headPool = headPool;
+            _bodyPool = bodyPool;
             _moveSpeed = moveSpeed;
 
             _baseColor = ColorPalette.ToUnityColor(body.Color);
@@ -60,16 +59,20 @@ namespace GeckoOut.Presentation.Gecko
 
             for (int i = 0; i < body.Cells.Count; i++)
             {
-                GeckoSegmentView segment = _segmentPool.Get();
-
                 bool isHead = i == 0;
+                GeckoSegmentView segment = isHead ? _headPool.Get() : _bodyPool.Get();
+
+                segment.ResetVisual();
                 segment.transform.position = _layout.CellToWorld(body.Cells[i]);
-                segment.transform.localScale = Vector3.one * (isHead ? HeadScale : BodyScale);
                 segment.SetColor(isHead ? _baseColor : _bodyColor);
-                segment.SetStretch(Vector3.forward, 0f);
+
+                if (isHead)
+                {
+                    _headSegment = segment;
+                }
 
                 _segments.Add(segment);
-                _previousPositions.Add(segment.transform.position);
+                SnapHeadFacing();
             }
         }
 
@@ -124,12 +127,10 @@ namespace GeckoOut.Presentation.Gecko
                     allSegmentsArrived = false;
                 }
 
-                Vector3 frameDelta = next - _previousPositions[i];
-                _previousPositions[i] = next;
-
                 segmentTransform.position = next;
-                ApplyStretch(i, frameDelta, deltaSeconds);
             }
+
+            UpdateHeadFacing(targetCells, deltaSeconds);
 
             if (allSegmentsArrived && _stepSnapshots.Count > 0)
             {
@@ -137,28 +138,70 @@ namespace GeckoOut.Presentation.Gecko
             }
         }
 
-        private void ApplyStretch(int segmentIndex, Vector3 frameDelta, float deltaSeconds)
+        private void UpdateHeadFacing(IReadOnlyList<GridPosition> targetCells, float deltaSeconds)
         {
-            if (deltaSeconds <= 0f)
+            if (_headSegment != null && TryGetHeadAxis(targetCells, out Vector3 headAxis))
             {
-                return;
+                _headSegment.SetFacing(headAxis, deltaSeconds);
+            }
+        }
+
+
+        private void SnapHeadFacing()
+        {
+            if (_headSegment != null && TryGetHeadAxis(_body.Cells, out Vector3 headAxis))
+            {
+                _headSegment.SnapFacing(headAxis);
+            }
+        }
+
+        /// <summary>The direction the head points away from the cell behind it.</summary>
+        private bool TryGetHeadAxis(IReadOnlyList<GridPosition> cells, out Vector3 axis)
+        {
+            axis = Vector3.zero;
+
+            if (cells == null || cells.Count < 2)
+            {
+                return false;
             }
 
-            float speed = frameDelta.magnitude / deltaSeconds;
-            float amount = Mathf.Clamp01(speed / StretchSpeedReference) * MaxStretch;
-
-            _segments[segmentIndex].SetStretch(frameDelta, amount);
+            axis = _layout.CellToWorld(cells[0]) - _layout.CellToWorld(cells[1]);
+            return true;
         }
 
         /// <summary>Returns all segments to the pool (level teardown).</summary>
+        /// <summary>Returns all segments to their pools (level teardown).</summary>
         public void ReleaseAll()
         {
             foreach (GeckoSegmentView segment in _segments)
             {
-                _segmentPool.Release(segment);
+                ReleaseSegment(segment);
             }
 
             _segments.Clear();
+        }
+
+        /// <summary>
+        /// Returns one segment to the pool it came from. The view is the only
+        /// place that knows which piece is the head, so routing lives here.
+        /// </summary>
+        public void ReleaseSegment(GeckoSegmentView segment)
+        {
+            if (segment == null)
+            {
+                return;
+            }
+
+            segment.ResetVisual();
+
+            if (segment == _headSegment)
+            {
+                _headPool.Release(segment);
+            }
+            else
+            {
+                _bodyPool.Release(segment);
+            }
         }
 
         /// <summary>
@@ -179,14 +222,13 @@ namespace GeckoOut.Presentation.Gecko
                 return;
             }
 
-            float baseScale = end == GeckoEnd.Head ? HeadScale : BodyScale;
-            Transform segmentTransform = _segments[index].transform;
+            GeckoSegmentView segment = _segments[index];
 
-            segmentTransform.DOKill();
-            segmentTransform.DOScale(baseScale * GrabScaleMultiplier, GrabPopDuration)
+            segment.transform.DOKill();
+            segment.transform.DOScale(segment.RestingScale * GrabScaleMultiplier, GrabPopDuration)
                 .SetEase(Ease.OutBack);
 
-            _segments[index].SetColor(Color.Lerp(EndBaseColor(end), Color.white, 0.35f));
+            segment.SetColor(Color.Lerp(EndBaseColor(end), Color.white, 0.35f));
         }
 
         public void PlayBlockedBump(GeckoEnd end)
@@ -198,17 +240,14 @@ namespace GeckoOut.Presentation.Gecko
                 return;
             }
 
-            // The blocked end is always the grabbed one, so its resting size
-            // is the grab size. Reset to it explicitly before animating, so
-            // repeated bumps can never accumulate.
-            float baseScale = end == GeckoEnd.Head ? HeadScale : BodyScale;
-            float restingScale = baseScale * GrabScaleMultiplier;
+            // The blocked end is always the grabbed one, so its resting size is
+            // the grab size. Reset to it explicitly so bumps cannot accumulate.
+            GeckoSegmentView segment = _segments[index];
+            Vector3 grabbedScale = segment.RestingScale * GrabScaleMultiplier;
 
-            Transform segmentTransform = _segments[index].transform;
-
-            segmentTransform.DOKill();
-            segmentTransform.localScale = Vector3.one * restingScale;
-            segmentTransform.DOScale(restingScale * 1.1f, 0.07f)
+            segment.transform.DOKill();
+            segment.transform.localScale = grabbedScale;
+            segment.transform.DOScale(grabbedScale * 1.1f, 0.07f)
                 .SetLoops(2, LoopType.Yoyo)
                 .SetEase(Ease.OutQuad);
         }
@@ -222,14 +261,13 @@ namespace GeckoOut.Presentation.Gecko
                 return;
             }
 
-            float baseScale = end == GeckoEnd.Head ? HeadScale : BodyScale;
-            Transform segmentTransform = _segments[index].transform;
+            GeckoSegmentView segment = _segments[index];
 
-            segmentTransform.DOKill();
-            segmentTransform.DOScale(baseScale, GrabReturnDuration)
+            segment.transform.DOKill();
+            segment.transform.DOScale(segment.RestingScale, GrabReturnDuration)
                 .SetEase(Ease.OutQuad);
 
-            _segments[index].SetColor(EndBaseColor(end));
+            segment.SetColor(EndBaseColor(end));
         }
 
         private int EndSegmentIndex(GeckoEnd end)

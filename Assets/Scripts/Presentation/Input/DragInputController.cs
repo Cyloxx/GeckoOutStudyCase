@@ -129,12 +129,11 @@ namespace GeckoOut.Presentation.Input
 
         private void ContinueDrag(Vector2 screenPosition)
         {
-            if (!_raycaster.TryGetWorldPoint(screenPosition, out Vector3 fingerWorld))
+            if (!_raycaster.TryGetCellUnderScreenPoint(screenPosition, out GridPosition fingerCell))
             {
                 return;
             }
 
-            GridPosition fingerCell = _layout.WorldToCell(fingerWorld);
             GridPosition endCell = _draggedGecko.GetEnd(_draggedEnd);
 
             if (fingerCell.Equals(endCell))

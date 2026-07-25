@@ -16,12 +16,14 @@ namespace GeckoOut.Presentation.Gecko
     /// </summary>
     public class GeckoViewManager : MonoBehaviour
     {
+        [SerializeField] private GeckoSegmentView _headPrefab;
         [SerializeField] private GeckoSegmentView _segmentPrefab;
         [SerializeField] private Transform _geckoRoot;
         [SerializeField] private float _segmentMoveSpeed = 14f;
         [SerializeField] private float _sinkDurationPerSegment = 0.09f;
         [SerializeField] private Cameras.CameraShake _cameraShake;
 
+        private ObjectPool<GeckoSegmentView> _headPool;
         private ObjectPool<GeckoSegmentView> _segmentPool;
         private readonly List<GeckoView> _views = new List<GeckoView>();
         private LevelSession _session;
@@ -36,6 +38,7 @@ namespace GeckoOut.Presentation.Gecko
 
             if (_segmentPool == null)
             {
+                _headPool = new ObjectPool<GeckoSegmentView>(_headPrefab, _geckoRoot);
                 _segmentPool = new ObjectPool<GeckoSegmentView>(_segmentPrefab, _geckoRoot);
             }
 
@@ -46,7 +49,7 @@ namespace GeckoOut.Presentation.Gecko
 
             foreach (GeckoBody gecko in session.ActiveGeckos)
             {
-                _views.Add(new GeckoView(gecko, layout, _segmentPool, _segmentMoveSpeed));
+                _views.Add(new GeckoView(gecko, layout, _headPool, _segmentPool, _segmentMoveSpeed));
             }
         }
 
@@ -202,8 +205,7 @@ namespace GeckoOut.Presentation.Gecko
                 yield return new WaitForSeconds(_sinkDurationPerSegment);
 
                 sinking.transform.DOKill();
-                sinking.transform.localScale = Vector3.one;
-                _segmentPool.Release(sinking);
+                view.ReleaseSegment(sinking);
             }
         }
     }

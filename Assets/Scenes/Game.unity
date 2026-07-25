@@ -624,10 +624,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 439233bebf08b4447a4d90f51929da73, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GeckoOut.Presentation::GeckoOut.Presentation.Gecko.GeckoViewManager
+  _headPrefab: {fileID: 2240840944721705312, guid: 889e7997e39f1f54da2d3c90a56868e9, type: 3}
   _segmentPrefab: {fileID: 2240840944721705312, guid: e01de0e6ba6e13b41928d82dec259bdf, type: 3}
   _geckoRoot: {fileID: 511496319}
   _segmentMoveSpeed: 14
-  _sinkDurationPerSegment: 0.09
+  _sinkDurationPerSegment: 0.18
   _cameraShake: {fileID: 987105850}
 --- !u!1 &379306711
 GameObject:

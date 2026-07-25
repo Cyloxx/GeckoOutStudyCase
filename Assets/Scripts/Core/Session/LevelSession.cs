@@ -100,27 +100,6 @@ namespace GeckoOut.Core.Session
                 }
             }
         }
-        
-        /// <summary>
-        /// Read-only check: would moving this end into target be a legal step
-        /// right now? Used by the drag driver to preview the next cell without
-        /// committing. Does not modify anything.
-        /// </summary>
-        public bool CanStep(GeckoBody gecko, GeckoEnd movingEnd, GridPosition target)
-        {
-            if (State != SessionState.Playing)
-            {
-                return false;
-            }
-
-            if (!_activeGeckos.Contains(gecko))
-            {
-                return false;
-            }
-
-            return _validator.CanStep(gecko, movingEnd, target, _activeGeckos);
-        }
-        
 
         /// <summary>
         /// Pushing one end into the body slides the gecko the other way:
