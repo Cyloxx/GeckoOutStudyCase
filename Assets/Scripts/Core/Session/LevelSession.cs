@@ -120,6 +120,109 @@ namespace GeckoOut.Core.Session
 
             return _validator.CanStep(gecko, movingEnd, target, _activeGeckos);
         }
+        
+                /// <summary>
+        /// Read-only: which cell would the opposite end advance into if this
+        /// end were pushed back into the body? Prefers retracing the last
+        /// recorded step, then a straight continuation, then a curl into any
+        /// free neighbour. Commits nothing.
+        /// </summary>
+        public bool TryGetPushBackTarget(GeckoBody gecko, GeckoEnd pushedEnd,
+                                         out GridPosition target)
+        {
+            return TryResolvePushBack(gecko, pushedEnd, out target, out bool isUndo);
+        }
+
+        /// <summary>
+        /// Pushing one end into the body slides the gecko the other way:
+        /// the opposite end leads into free space (or the last step is undone),
+        /// every other segment follows the one behind it.
+        /// </summary>
+        public bool TryPushBack(GeckoBody gecko, GeckoEnd pushedEnd)
+        {
+            if (!TryResolvePushBack(gecko, pushedEnd, out GridPosition target, out bool isUndo))
+            {
+                return false;
+            }
+
+            if (isUndo)
+            {
+                return TryUndoLastStep(gecko);
+            }
+
+            return TryStepTo(gecko, GeckoBody.Opposite(pushedEnd), target);
+        }
+
+        private bool TryResolvePushBack(GeckoBody gecko, GeckoEnd pushedEnd,
+                                       out GridPosition target, out bool isUndo)
+        {
+            target = default;
+            isUndo = false;
+
+            if (State != SessionState.Playing)
+            {
+                return false;
+            }
+
+            if (!_activeGeckos.Contains(gecko) || gecko.Length < 2)
+            {
+                return false;
+            }
+
+            GeckoEnd leadingEnd = GeckoBody.Opposite(pushedEnd);
+            GridPosition lead = gecko.GetEnd(leadingEnd);
+
+            StepCommand last = _history.PeekLast() as StepCommand;
+
+            if (last != null && last.Gecko == gecko && last.MovingEnd == pushedEnd
+                && _validator.CanStep(gecko, leadingEnd, last.FreedCell, _activeGeckos))
+            {
+                target = last.FreedCell;
+                isUndo = true;
+                return true;
+            }
+
+            GridPosition inner = InnerNeighbour(gecko, leadingEnd);
+            var straight = new GridPosition(
+                lead.X + (lead.X - inner.X),
+                lead.Y + (lead.Y - inner.Y));
+
+            if (_validator.CanStep(gecko, leadingEnd, straight, _activeGeckos))
+            {
+                target = straight;
+                return true;
+            }
+
+            foreach (GridPosition direction in GridPosition.OrthogonalDirections)
+            {
+                GridPosition candidate = lead.Add(direction);
+
+                if (candidate.Equals(straight))
+                {
+                    continue;
+                }
+
+                if (_validator.CanStep(gecko, leadingEnd, candidate, _activeGeckos))
+                {
+                    target = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private GridPosition InnerNeighbour(GeckoBody gecko, GeckoEnd end)
+        {
+            IReadOnlyList<GridPosition> cells = gecko.Cells;
+
+            if (end == GeckoEnd.Head)
+            {
+                return cells[1];
+            }
+
+            return cells[cells.Count - 2];
+        }
 
         /// <summary>
         /// Tries to move one end of a gecko into an adjacent cell.

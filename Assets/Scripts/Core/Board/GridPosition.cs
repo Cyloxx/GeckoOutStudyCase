@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GeckoOut.Core.Board
 {
@@ -20,6 +21,14 @@ namespace GeckoOut.Core.Board
         public static readonly GridPosition Down = new GridPosition(0, -1);
         public static readonly GridPosition Left = new GridPosition(-1, 0);
         public static readonly GridPosition Right = new GridPosition(1, 0);
+        
+        private static readonly GridPosition[] _orthogonalDirections = { Up, Down, Left, Right };
+
+        /// <summary>The four orthogonal offsets, in a fixed order.</summary>
+        public static IReadOnlyList<GridPosition> OrthogonalDirections
+        {
+            get { return _orthogonalDirections; }
+        }
 
         /// <summary>Orthogonal neighbours only; diagonals do not count.</summary>
         public bool IsAdjacentTo(GridPosition other)

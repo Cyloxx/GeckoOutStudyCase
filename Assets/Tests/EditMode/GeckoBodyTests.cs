@@ -120,9 +120,10 @@ namespace GeckoOut.Tests
         }
 
         [Test]
-        public void Step_IntoOwnTailCell_IsAllowed()
+        public void Step_IntoOwnTailCell_Throws()
         {
             // U-shaped gecko: head (0,0) and tail (0,1) are adjacent.
+            // Snake-style tail chasing is not allowed in this game.
             var gecko = new GeckoBody(ColorId.Red, new List<GridPosition>
             {
                 new GridPosition(0, 0),
@@ -131,10 +132,11 @@ namespace GeckoOut.Tests
                 new GridPosition(0, 1)
             });
 
-            gecko.StepAndGetFreedCell(GeckoEnd.Head, new GridPosition(0, 1));
-
-            Assert.That(gecko.Head, Is.EqualTo(new GridPosition(0, 1)));
-            Assert.That(gecko.Length, Is.EqualTo(4));
+            Assert.Throws<System.InvalidOperationException>(delegate
+            {
+                gecko.StepAndGetFreedCell(GeckoEnd.Head, new GridPosition(0, 1));
+            });
         }
+        
     }
 }

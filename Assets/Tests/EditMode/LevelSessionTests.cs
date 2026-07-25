@@ -160,5 +160,64 @@ namespace GeckoOut.Tests
 
             Assert.That(canStep, Is.False);
         }
+                [Test]
+        public void TryPushBack_NoHistory_TailAdvancesStraight()
+        {
+            // Red: head (1,1), tail (1,2). Pushing the head back sends the
+            // tail straight on to (1,3).
+            bool moved = _session.TryPushBack(_red, GeckoEnd.Head);
+
+            Assert.That(moved, Is.True);
+            Assert.That(_red.Tail, Is.EqualTo(new GridPosition(1, 3)));
+            Assert.That(_red.Head, Is.EqualTo(new GridPosition(1, 2)));
+        }
+
+        [Test]
+        public void TryPushBack_StraightBlocked_CurlsIntoFreeCell()
+        {
+            // Green: head (3,3), tail (3,4). Straight would be (3,5), outside
+            // the 5x5 board, so the tail must curl sideways.
+            bool moved = _session.TryPushBack(_green, GeckoEnd.Head);
+
+            Assert.That(moved, Is.True);
+            Assert.That(_green.Head, Is.EqualTo(new GridPosition(3, 4)));
+            Assert.That(_green.Tail.IsAdjacentTo(new GridPosition(3, 4)), Is.True);
+        }
+
+        [Test]
+        public void TryPushBack_AfterAStep_RetracesTheStep()
+        {
+            var cellsBefore = new List<GridPosition>(_red.Cells);
+            _session.TryStepTo(_red, GeckoEnd.Head, new GridPosition(2, 1));
+
+            bool moved = _session.TryPushBack(_red, GeckoEnd.Head);
+
+            Assert.That(moved, Is.True);
+            Assert.That(_red.Cells, Is.EqualTo(cellsBefore));
+        }
+
+        [Test]
+        public void TryPushBack_NoRoomAtAll_ReturnsFalse()
+        {
+            // 3x1 board: the gecko fills the only free cells, so the tail
+            // has nowhere to advance.
+            var board = new BoardGrid(3, 1,
+                new List<GridPosition>(),
+                new List<ExitPoint> { new ExitPoint(new GridPosition(0, 0), ColorId.Red) });
+
+            var gecko = new GeckoBody(ColorId.Red, new List<GridPosition>
+            {
+                new GridPosition(1, 0),
+                new GridPosition(2, 0)
+            });
+
+            var session = new LevelSession(board, new List<GeckoBody> { gecko },
+                new MoveValidator(board, new ColorMatchExitRule()),
+                new PathResolver(), 60f);
+
+            Assert.That(session.TryPushBack(gecko, GeckoEnd.Head), Is.False);
+        }
+        
+      
     }
 }

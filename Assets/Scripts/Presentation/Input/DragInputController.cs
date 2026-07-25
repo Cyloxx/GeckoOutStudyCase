@@ -140,11 +140,21 @@ namespace GeckoOut.Presentation.Input
             }
 
             GridPosition fingerCell = _layout.WorldToCell(fingerWorld);
-            GridPosition headCell = _draggedGecko.GetEnd(_draggedEnd);
+            GridPosition endCell = _draggedGecko.GetEnd(_draggedEnd);
 
-            if (!fingerCell.Equals(headCell))
+            if (!fingerCell.Equals(endCell))
             {
-                bool moved = _session.TryDragTo(_draggedGecko, _draggedEnd, fingerCell);
+                bool moved;
+
+                if (_draggedGecko.Occupies(fingerCell))
+                {
+                    // Finger pushed into the body: the gecko slides the other way.
+                    moved = _session.TryPushBack(_draggedGecko, _draggedEnd);
+                }
+                else
+                {
+                    moved = _session.TryDragTo(_draggedGecko, _draggedEnd, fingerCell);
+                }
 
                 if (!moved)
                 {
@@ -155,49 +165,65 @@ namespace GeckoOut.Presentation.Input
             UpdateDragRender(fingerWorld);
         }
 
-        private void UpdateDragRender(Vector3 fingerWorld)
+                private void UpdateDragRender(Vector3 fingerWorld)
         {
-            GridPosition headCell = _draggedGecko.GetEnd(_draggedEnd);
-            Vector3 offset = fingerWorld - _layout.CellToWorld(headCell);
+            GridPosition endCell = _draggedGecko.GetEnd(_draggedEnd);
+            Vector3 offset = fingerWorld - _layout.CellToWorld(endCell);
 
-            GridPosition dir;
-            float proj;
+            float absX = Mathf.Abs(offset.x);
+            float absZ = Mathf.Abs(offset.z);
+            bool xDominant = absX >= absZ;
 
-            if (Mathf.Abs(offset.x) >= Mathf.Abs(offset.z))
+            GridPosition primaryDir = xDominant
+                ? new GridPosition(offset.x >= 0f ? 1 : -1, 0)
+                : new GridPosition(0, offset.z >= 0f ? 1 : -1);
+
+            GridPosition secondaryDir = xDominant
+                ? new GridPosition(0, offset.z >= 0f ? 1 : -1)
+                : new GridPosition(offset.x >= 0f ? 1 : -1, 0);
+
+            float primaryProj = (xDominant ? absX : absZ) / _layout.CellSize;
+            float secondaryProj = (xDominant ? absZ : absX) / _layout.CellSize;
+
+            GridPosition primaryCell = endCell.Add(primaryDir);
+
+            // Leaning into the body is a push-back: the opposite end leads.
+            if (_draggedGecko.Occupies(primaryCell))
             {
-                dir = new GridPosition(offset.x >= 0f ? 1 : -1, 0);
-                proj = Mathf.Abs(offset.x) / _layout.CellSize;
+                GeckoEnd leadingEnd = GeckoBody.Opposite(_draggedEnd);
+
+                if (_session.TryGetPushBackTarget(_draggedGecko, _draggedEnd,
+                        out GridPosition pushTarget))
+                {
+                    _viewManager.SetDragRender(_draggedGecko, leadingEnd, pushTarget,
+                        true, Mathf.Clamp(primaryProj, 0f, 0.5f));
+                }
+                else
+                {
+                    _viewManager.SetDragRender(_draggedGecko, leadingEnd, primaryCell, false, 0f);
+                }
+
+                return;
             }
-            else
+
+            GridPosition candidate = primaryCell;
+            float proj = primaryProj;
+            bool hasLead = _session.CanStep(_draggedGecko, _draggedEnd, candidate);
+
+            if (!hasLead && secondaryProj > 0.05f)
             {
-                dir = new GridPosition(0, offset.z >= 0f ? 1 : -1);
-                proj = Mathf.Abs(offset.z) / _layout.CellSize;
+                GridPosition alternative = endCell.Add(secondaryDir);
+
+                if (_session.CanStep(_draggedGecko, _draggedEnd, alternative))
+                {
+                    candidate = alternative;
+                    proj = secondaryProj;
+                    hasLead = true;
+                }
             }
 
-            GridPosition candidate = headCell.Add(dir);
-
-            bool hasLead = IsNeckCell(candidate)
-                || _session.CanStep(_draggedGecko, _draggedEnd, candidate);
-
-            float progress = hasLead ? Mathf.Clamp(proj, 0f, 0.5f) : 0f;
-
-            _viewManager.SetDragRender(_draggedGecko, _draggedEnd, candidate, hasLead, progress);
-        }
-
-        private bool IsNeckCell(GridPosition cell)
-        {
-            var cells = _draggedGecko.Cells;
-
-            if (cells.Count < 2)
-            {
-                return false;
-            }
-
-            GridPosition neck = _draggedEnd == GeckoEnd.Head
-                ? cells[1]
-                : cells[cells.Count - 2];
-
-            return cell.Equals(neck);
+            _viewManager.SetDragRender(_draggedGecko, _draggedEnd, candidate, hasLead,
+                hasLead ? Mathf.Clamp(proj, 0f, 0.5f) : 0f);
         }
 
         private void RaiseBlockedFeedback()

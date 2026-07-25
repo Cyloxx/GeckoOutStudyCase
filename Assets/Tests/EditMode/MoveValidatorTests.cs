@@ -109,10 +109,8 @@ namespace GeckoOut.Tests
         }
 
         [Test]
-        public void CanStep_IntoOwnTailCell_ReturnsTrue()
+        public void CanStep_IntoOwnTailCell_ReturnsFalse()
         {
-            // U-shaped gecko: head (4,4) and tail (4,5) are adjacent,
-            // and the tail cell is freed in the same step.
             var uGecko = new GeckoBody(ColorId.Blue, new List<GridPosition>
             {
                 new GridPosition(4, 4),
@@ -124,7 +122,7 @@ namespace GeckoOut.Tests
             bool allowed = _validator.CanStep(uGecko, GeckoEnd.Head,
                 new GridPosition(4, 5), new List<GeckoBody> { uGecko });
 
-            Assert.That(allowed, Is.True);
+            Assert.That(allowed, Is.False);
         }
 
         [Test]

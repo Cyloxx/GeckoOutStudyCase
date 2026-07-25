@@ -99,7 +99,7 @@ namespace GeckoOut.Core.Gecko
                     "Step target must be adjacent. " + movingCell + " -> " + newCell);
             }
 
-            if (WouldOverlapSelf(movingEnd, newCell))
+            if (WouldOverlapSelf(newCell))
             {
                 throw new InvalidOperationException(
                     "Step target overlaps the body: " + newCell);
@@ -149,13 +149,13 @@ namespace GeckoOut.Core.Gecko
         }
 
         /// <summary>
-        /// True when moving the given end into target would land on this very
-        /// body — except the cell the opposite end frees in the same step.
+        /// True when target is any cell of this body. A gecko never moves onto
+        /// itself — not even onto the cell its opposite end is vacating; use
+        /// the other end to reverse instead.
         /// </summary>
-        public bool WouldOverlapSelf(GeckoEnd movingEnd, GridPosition target)
+        public bool WouldOverlapSelf(GridPosition target)
         {
-            GridPosition freedCell = GetEnd(Opposite(movingEnd));
-            return Occupies(target) && !target.Equals(freedCell);
+            return Occupies(target);
         }
     }
 }

@@ -12,13 +12,6 @@ namespace GeckoOut.Core.Rules
     /// </summary>
     public class PathResolver
     {
-        private static readonly GridPosition[] Directions =
-        {
-            GridPosition.Up,
-            GridPosition.Down,
-            GridPosition.Left,
-            GridPosition.Right
-        };
 
         /// <summary>
         /// Returns true if a path exists. The path contains every cell to
@@ -52,7 +45,7 @@ namespace GeckoOut.Core.Rules
             {
                 GridPosition current = frontier.Dequeue();
 
-                foreach (GridPosition direction in Directions)
+                foreach (GridPosition direction in GridPosition.OrthogonalDirections)
                 {
                     GridPosition next = current.Add(direction);
 

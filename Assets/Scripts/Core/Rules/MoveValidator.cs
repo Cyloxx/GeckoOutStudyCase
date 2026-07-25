@@ -49,7 +49,7 @@ namespace GeckoOut.Core.Rules
                 return false;
             }
 
-            if (gecko.WouldOverlapSelf(movingEnd, target))
+            if (gecko.WouldOverlapSelf(target))
             {
                 return false;
             }
