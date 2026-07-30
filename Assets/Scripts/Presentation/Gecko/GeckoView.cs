@@ -9,7 +9,7 @@ using UnityEngine;
 namespace GeckoOut.Presentation.Gecko
 {
     /// <summary>
-    /// Visual of one gecko: a chain of pooled segments that follow the body's
+    /// Visual of one gecko: a chain of pooled pieces that follow the body's
     /// cells. Every model step is queued as a snapshot and animated in order,
     /// so the body always walks through each cell it passes through — there is
     /// one movement path, whether the step came from a short drag or a long one.
@@ -25,15 +25,13 @@ namespace GeckoOut.Presentation.Gecko
         private readonly BoardLayout _layout;
         private readonly ObjectPool<GeckoSegmentView> _headPool;
         private readonly ObjectPool<GeckoSegmentView> _bodyPool;
-        private GeckoSegmentView _headSegment;
         private readonly List<GeckoSegmentView> _segments = new List<GeckoSegmentView>();
         private readonly float _moveSpeed;
         private readonly Queue<List<GridPosition>> _stepSnapshots
             = new Queue<List<GridPosition>>();
-        private Vector3 _previousHeadPosition;
 
+        private GeckoSegmentView _headSegment;
         private Color _baseColor;
-        private Color _bodyColor;
 
         public GeckoBody Body
         {
@@ -56,7 +54,6 @@ namespace GeckoOut.Presentation.Gecko
             _moveSpeed = moveSpeed;
 
             _baseColor = ColorPalette.ToUnityColor(body.Color);
-            _bodyColor = _baseColor * 0.75f;
 
             for (int i = 0; i < body.Cells.Count; i++)
             {
@@ -65,7 +62,7 @@ namespace GeckoOut.Presentation.Gecko
 
                 segment.ResetVisual();
                 segment.transform.position = _layout.CellToWorld(body.Cells[i]);
-                segment.SetColor(isHead ? _baseColor : _bodyColor);
+                segment.SetColor(_baseColor);
 
                 if (isHead)
                 {
@@ -73,12 +70,10 @@ namespace GeckoOut.Presentation.Gecko
                 }
 
                 _segments.Add(segment);
-                SnapHeadFacing();
-                if (_headSegment != null)
-                {
-                    _previousHeadPosition = _headSegment.transform.position;
-                }
             }
+
+            SnapHeadFacing();
+            UpdateConnectors();
         }
 
         /// <summary>
@@ -92,7 +87,7 @@ namespace GeckoOut.Presentation.Gecko
         }
 
         /// <summary>
-        /// Eases every segment toward its target cell. Targets come from the
+        /// Eases every piece toward its target cell. Targets come from the
         /// oldest pending snapshot, so each cell of the path is visited in
         /// order; the smoothing rate scales with how many steps are still
         /// queued, so long moves catch up without skipping cells.
@@ -157,7 +152,7 @@ namespace GeckoOut.Presentation.Gecko
 
             _headSegment.SetFacing(facing, deltaSeconds);
         }
-        
+
         private void UpdateConnectors()
         {
             for (int i = 0; i < _segments.Count; i++)
@@ -172,7 +167,6 @@ namespace GeckoOut.Presentation.Gecko
                 }
             }
         }
-
 
         private void SnapHeadFacing()
         {
@@ -196,8 +190,7 @@ namespace GeckoOut.Presentation.Gecko
             return true;
         }
 
-        /// <summary>Returns all segments to the pool (level teardown).</summary>
-        /// <summary>Returns all segments to their pools (level teardown).</summary>
+        /// <summary>Returns all pieces to their pools (level teardown).</summary>
         public void ReleaseAll()
         {
             foreach (GeckoSegmentView segment in _segments)
@@ -209,7 +202,7 @@ namespace GeckoOut.Presentation.Gecko
         }
 
         /// <summary>
-        /// Returns one segment to the pool it came from. The view is the only
+        /// Returns one piece to the pool it came from. The view is the only
         /// place that knows which piece is the head, so routing lives here.
         /// </summary>
         public void ReleaseSegment(GeckoSegmentView segment)
@@ -232,7 +225,7 @@ namespace GeckoOut.Presentation.Gecko
         }
 
         /// <summary>
-        /// Forgets the segments without releasing them. Used when the exit
+        /// Forgets the pieces without releasing them. Used when the exit
         /// animation takes over their lifetime.
         /// </summary>
         public void ForgetSegments()
@@ -255,7 +248,7 @@ namespace GeckoOut.Presentation.Gecko
             segment.transform.DOScale(segment.RestingScale * GrabScaleMultiplier, GrabPopDuration)
                 .SetEase(Ease.OutBack);
 
-            segment.SetColor(Color.Lerp(EndBaseColor(end), Color.white, 0.35f));
+            segment.SetColor(Color.Lerp(_baseColor, Color.white, 0.35f));
         }
 
         public void PlayBlockedBump(GeckoEnd end)
@@ -294,7 +287,7 @@ namespace GeckoOut.Presentation.Gecko
             segment.transform.DOScale(segment.RestingScale, GrabReturnDuration)
                 .SetEase(Ease.OutQuad);
 
-            segment.SetColor(EndBaseColor(end));
+            segment.SetColor(_baseColor);
         }
 
         private int EndSegmentIndex(GeckoEnd end)
@@ -305,11 +298,6 @@ namespace GeckoOut.Presentation.Gecko
             }
 
             return end == GeckoEnd.Head ? 0 : _segments.Count - 1;
-        }
-
-        private Color EndBaseColor(GeckoEnd end)
-        {
-            return end == GeckoEnd.Head ? _baseColor : _bodyColor;
         }
     }
 }

@@ -168,7 +168,7 @@ namespace GeckoOut.Presentation.Gecko
         /// whole chain advances one cell toward the exit and the front-most
         /// segment sinks. No diagonal shortcuts — segments follow the path.
         /// </summary>
-        private IEnumerator PlaySinkRoutine(GeckoView view, ExitPoint exit)
+                private IEnumerator PlaySinkRoutine(GeckoView view, ExitPoint exit)
         {
             bool headExited = view.Body.Head.Equals(exit.Position);
 
@@ -185,6 +185,17 @@ namespace GeckoOut.Presentation.Gecko
             view.ForgetSegments();
 
             int count = ordered.Count;
+
+            // The body is usually still walking when it reaches the hole, so
+            // every piece is snapped onto its committed cell first. Each sink
+            // step then covers exactly one cell and can never cut a corner.
+            for (int i = 0; i < count; i++)
+            {
+                ordered[i].transform.DOKill();
+                ordered[i].transform.position = _layout.CellToWorld(path[i]);
+            }
+
+            RefreshSinkingChain(ordered, 1, count, headExited);
 
             for (int tick = 1; tick <= count; tick++)
             {
@@ -215,6 +226,7 @@ namespace GeckoOut.Presentation.Gecko
                 view.ReleaseSegment(sinking);
             }
         }
+        
         /// <summary>
         /// The view is no longer ticked once a gecko is sinking, so necks and
         /// head facing are refreshed here — otherwise the head would freeze at
