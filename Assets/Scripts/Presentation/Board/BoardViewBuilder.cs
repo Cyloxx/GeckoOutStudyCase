@@ -67,7 +67,7 @@ namespace GeckoOut.Presentation.Board
         {
             if (_exitViews.TryGetValue(cell, out ExitView exitView))
             {
-                exitView.PlayPulse();
+                exitView.PlayConsumed();
             }
 
             if (_exitParticlePrefab != null)

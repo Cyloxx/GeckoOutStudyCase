@@ -16,6 +16,11 @@ namespace GeckoOut.Presentation.Gecko
         [SerializeField] private Transform _visual;
         [SerializeField] private float _turnSpeed = 16f;
 
+        [SerializeField] private Transform _connector;
+
+        private Vector3 _connectorRestingScale = Vector3.one;
+        private float _connectorRestingHeight;
+        
         private Vector3 _restingScale = Vector3.one;
 
         /// <summary>The scale authored on the prefab; tweens return to it.</summary>
@@ -27,6 +32,12 @@ namespace GeckoOut.Presentation.Gecko
         private void Awake()
         {
             _restingScale = transform.localScale;
+
+            if (_connector != null)
+            {
+                _connectorRestingScale = _connector.localScale;
+                _connectorRestingHeight = _connector.localPosition.y;
+            }
         }
 
         public void SetColor(Color color)
@@ -88,6 +99,46 @@ namespace GeckoOut.Presentation.Gecko
             {
                 _visual.localRotation = Quaternion.identity;
                 _visual.localScale = Vector3.one;
+            }
+        }
+        
+        /// <summary>
+        /// Stretches this piece's neck so it reaches the next piece, which is
+        /// what makes a coiled gecko readable as one connected body.
+        /// </summary>
+        public void SetConnectorTarget(Vector3 worldTarget)
+        {
+            if (_connector == null)
+            {
+                return;
+            }
+
+            Vector3 delta = worldTarget - transform.position;
+            float distance = delta.magnitude;
+
+            if (distance <= 0.0001f)
+            {
+                _connector.gameObject.SetActive(false);
+                return;
+            }
+
+            float lossy = Mathf.Max(transform.lossyScale.z, 0.0001f);
+            Vector3 localHalf = delta * 0.5f / lossy;
+
+            _connector.gameObject.SetActive(true);
+            _connector.localPosition = new Vector3(localHalf.x, _connectorRestingHeight, localHalf.z);
+            _connector.rotation = Quaternion.LookRotation(delta, Vector3.up);
+            _connector.localScale = new Vector3(
+                _connectorRestingScale.x,
+                _connectorRestingScale.y,
+                distance / lossy);
+        }
+
+        public void HideConnector()
+        {
+            if (_connector != null)
+            {
+                _connector.gameObject.SetActive(false);
             }
         }
     }

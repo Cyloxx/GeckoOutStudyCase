@@ -202,10 +202,51 @@ namespace GeckoOut.Presentation.Gecko
                         .SetEase(Ease.Linear);
                 }
 
-                yield return new WaitForSeconds(_sinkDurationPerSegment);
+                float elapsed = 0f;
+
+                while (elapsed < _sinkDurationPerSegment)
+                {
+                    RefreshSinkingChain(ordered, tick, count, headExited);
+                    elapsed += Time.deltaTime;
+                    yield return null;
+                }
 
                 sinking.transform.DOKill();
                 view.ReleaseSegment(sinking);
+            }
+        }
+        /// <summary>
+        /// The view is no longer ticked once a gecko is sinking, so necks and
+        /// head facing are refreshed here — otherwise the head would freeze at
+        /// a stale angle while the body curves into the hole.
+        /// </summary>
+        private void RefreshSinkingChain(List<GeckoSegmentView> ordered, int tick,
+            int count, bool headExited)
+        {
+            for (int j = tick - 1; j < count; j++)
+            {
+                if (j + 1 < count)
+                {
+                    ordered[j].SetConnectorTarget(ordered[j + 1].transform.position);
+                }
+                else
+                {
+                    ordered[j].HideConnector();
+                }
+            }
+
+            int headIndex = headExited ? 0 : count - 1;
+            int neckIndex = headExited ? 1 : count - 2;
+
+            bool headStillThere = headIndex >= tick - 1;
+            bool neckStillThere = neckIndex >= tick - 1 && neckIndex >= 0 && neckIndex < count;
+
+            if (headStillThere && neckStillThere)
+            {
+                Vector3 headPosition = ordered[headIndex].transform.position;
+                Vector3 neckPosition = ordered[neckIndex].transform.position;
+
+                ordered[headIndex].SetFacing(headPosition - neckPosition, Time.deltaTime);
             }
         }
     }

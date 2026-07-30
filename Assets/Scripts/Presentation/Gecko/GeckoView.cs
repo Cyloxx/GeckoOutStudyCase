@@ -30,6 +30,7 @@ namespace GeckoOut.Presentation.Gecko
         private readonly float _moveSpeed;
         private readonly Queue<List<GridPosition>> _stepSnapshots
             = new Queue<List<GridPosition>>();
+        private Vector3 _previousHeadPosition;
 
         private Color _baseColor;
         private Color _bodyColor;
@@ -73,6 +74,10 @@ namespace GeckoOut.Presentation.Gecko
 
                 _segments.Add(segment);
                 SnapHeadFacing();
+                if (_headSegment != null)
+                {
+                    _previousHeadPosition = _headSegment.transform.position;
+                }
             }
         }
 
@@ -130,7 +135,8 @@ namespace GeckoOut.Presentation.Gecko
                 segmentTransform.position = next;
             }
 
-            UpdateHeadFacing(targetCells, deltaSeconds);
+            UpdateHeadFacing(deltaSeconds);
+            UpdateConnectors();
 
             if (allSegmentsArrived && _stepSnapshots.Count > 0)
             {
@@ -138,11 +144,32 @@ namespace GeckoOut.Presentation.Gecko
             }
         }
 
-        private void UpdateHeadFacing(IReadOnlyList<GridPosition> targetCells, float deltaSeconds)
+        private void UpdateHeadFacing(float deltaSeconds)
         {
-            if (_headSegment != null && TryGetHeadAxis(targetCells, out Vector3 headAxis))
+            if (_headSegment == null || _segments.Count < 2)
             {
-                _headSegment.SetFacing(headAxis, deltaSeconds);
+                return;
+            }
+
+            // The head points away from the piece behind it, so it keeps
+            // looking forward even while the gecko slides backwards.
+            Vector3 facing = _segments[0].transform.position - _segments[1].transform.position;
+
+            _headSegment.SetFacing(facing, deltaSeconds);
+        }
+        
+        private void UpdateConnectors()
+        {
+            for (int i = 0; i < _segments.Count; i++)
+            {
+                if (i + 1 < _segments.Count)
+                {
+                    _segments[i].SetConnectorTarget(_segments[i + 1].transform.position);
+                }
+                else
+                {
+                    _segments[i].HideConnector();
+                }
             }
         }
 

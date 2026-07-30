@@ -21,13 +21,21 @@ namespace GeckoOut.Presentation.Board
             _baseScale = transform.localScale;
         }
 
-        public void PlayPulse()
+        /// <summary>Pulses once and then closes: a used hole is gone for good.</summary>
+        public void PlayConsumed()
         {
             transform.DOKill();
             transform.localScale = _baseScale;
-            transform.DOScale(_baseScale * 1.35f, 0.12f)
-                .SetLoops(2, LoopType.Yoyo)
-                .SetEase(Ease.OutQuad);
+
+            Sequence sequence = DOTween.Sequence();
+            sequence.Append(transform.DOScale(_baseScale * 1.35f, 0.12f).SetEase(Ease.OutQuad));
+            sequence.Append(transform.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack));
+            sequence.OnComplete(Hide);
+        }
+
+        private void Hide()
+        {
+            gameObject.SetActive(false);
         }
     }
 }
